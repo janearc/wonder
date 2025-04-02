@@ -2,6 +2,18 @@
 
 Gizzard is a tool for processing and optimizing markdown files in the Wonder system. It reads files from specified sigil directories, processes their content, and outputs an optimized YAML file.
 
+## Requirements
+
+1. Python 3.x
+2. Required packages (installed automatically by setup script):
+   - pyyaml
+   - jsonschema
+3. Environment setup:
+   ```bash
+   # Set WONDER_ROOT to point to your wonder project root
+   export WONDER_ROOT=/path/to/your/wonder/root
+   ```
+
 ## Setup
 
 1. First time setup:
@@ -21,6 +33,9 @@ Gizzard is a tool for processing and optimizing markdown files in the Wonder sys
    ```bash
    # Activate the virtual environment
    source ../venv/bin/activate
+   
+   # Make sure WONDER_ROOT is set
+   echo $WONDER_ROOT
    ```
 
 ## Usage
@@ -66,6 +81,11 @@ relationships:
 
 ## Troubleshooting
 
+If you get a "WONDER_ROOT not set" error:
+1. Make sure you've set the WONDER_ROOT environment variable
+2. Verify the path exists and is correct
+3. The path should point to the root of your wonder project
+
 If you get a "command not found" error:
 1. Make sure you've activated the virtual environment
 2. Make sure you're in the correct directory
@@ -79,4 +99,5 @@ If you get import errors:
 
 - The virtual environment is in `sigil/core/system/venv/`
 - You need to activate the virtual environment each time you open a new terminal
-- The output file will be created in your current directory 
+- The output file will be created in your current directory
+- WONDER_ROOT must be set to the root directory of your wonder project 

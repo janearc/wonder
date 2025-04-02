@@ -7,6 +7,10 @@ import yaml
 import jsonschema
 from dataclasses import dataclass
 from collections import defaultdict
+import argparse
+import glob
+import json
+from jsonschema import validate, ValidationError
 
 @dataclass
 class TokenStats:
@@ -52,6 +56,77 @@ class GizzardProcessor:
         if not self.wonder_root:
             raise ValueError("WONDER_ROOT environment variable must be set")
         self.wonder_root = Path(self.wonder_root)
+        
+        self.all_content = []
+        self.all_relationships = []
+        
+        # Define kernel schema
+        self.kernel_schema = {
+            "type": "object",
+            "required": ["kernel", "metadata", "identity", "actions", "content", "relationships"],
+            "properties": {
+                "kernel": {
+                    "type": "object",
+                    "required": ["name", "repository", "seed_file"],
+                    "properties": {
+                        "name": {"type": "string"},
+                        "repository": {"type": "string"},
+                        "seed_file": {"type": "string"}
+                    }
+                },
+                "metadata": {
+                    "type": "object",
+                    "required": ["version", "description"],
+                    "properties": {
+                        "version": {"type": "string"},
+                        "description": {"type": "string"}
+                    }
+                },
+                "identity": {
+                    "type": "object",
+                    "required": ["name", "description"],
+                    "properties": {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"}
+                    }
+                },
+                "actions": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "content": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["title", "content", "relationships"],
+                        "properties": {
+                            "title": {"type": "string"},
+                            "content": {"type": "string"},
+                            "relationships": {
+                                "type": "array",
+                                "items": {"type": "string"}
+                            }
+                        }
+                    }
+                },
+                "relationships": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                }
+            }
+        }
+        
+        self.sigil_dirs = [
+            os.path.join(self.wonder_root, "sigil/ethic"),
+            os.path.join(self.wonder_root, "sigil/concept"),
+            os.path.join(self.wonder_root, "sigil/metareal"),
+            os.path.join(self.wonder_root, "sigil/orthoreal"),
+            os.path.join(self.wonder_root, "sigil/parareal"),
+            os.path.join(self.wonder_root, "sigil/hyperreal"),
+            os.path.join(self.wonder_root, "sigil/hyporeal")
+        ]
+        self.sigil_files = []
+        self.load_sigil_files()
         
     def resolve_path(self, path: str) -> Path:
         """Resolve a path relative to WONDER_ROOT."""
@@ -194,118 +269,292 @@ class GizzardProcessor:
             file_path=str(input_path)
         )
         
+        self.all_content.append(processed_content)
+        self.all_relationships.extend(relationships)
+        
         return processed_content, relationships
     
-    def process_kernel(self, kernel_path: str, output_path: str) -> None:
-        """Process all sigils specified in a kernel and output a single optimized file."""
-        # Load kernel
-        kernel_path = self.resolve_path(kernel_path)
-        print(f"Loading kernel from: {kernel_path}")  # Debug
-        with open(kernel_path, 'r') as f:
-            kernel = yaml.safe_load(f)
+    def validate_wonder_root(self):
+        """Validate that WONDER_ROOT is set and points to a valid directory.
+        Returns (is_valid, error_message)"""
+        if not self.wonder_root:
+            return False, "WONDER_ROOT environment variable must be set"
         
-        # Get kernel name and sigils
-        kernel_name = list(kernel.keys())[0]
-        kernel_data = kernel[kernel_name]
-        print(f"Kernel name: {kernel_name}")  # Debug
-        print(f"Found sigil directories: {kernel_data['sigils']}")  # Debug
+        if not os.path.isdir(self.wonder_root):
+            return False, f"WONDER_ROOT directory does not exist: {self.wonder_root}"
         
-        # Process all files and collect content
-        all_content = []
-        all_relationships = []
+        return True, None
+
+    def clean_content(self, content: str) -> str:
+        """Clean and reduce content while preserving special terms and intelligently handling long sentences."""
+        # Define special terms to preserve
+        special_terms = {
+            "metareal", "orthoreal", "parareal", "hyperreal", "hyporeal",
+            "Rokolisk", "Wonder", "Cinder", "sigil", "kernel", "ethic",
+            "∧", "∨", "¬", "→", "↔", "∀", "∃", "∈", "∉", "⊂", "⊃", "∪", "∩"
+        }
         
-        # Process each sigil directory
-        for sigil_dir in kernel_data['sigils']:
-            # The sigil paths in the kernel are relative to the repository root
-            sigil_path = self.wonder_root / sigil_dir
-            print(f"Processing sigil directory: {sigil_path}")  # Debug
-            if not sigil_path.exists():
-                print(f"Warning: Sigil directory not found: {sigil_path}")
+        # Split into sentences
+        sentences = re.split(r'[.!?]+', content)
+        cleaned_sentences = []
+        
+        for sentence in sentences:
+            # Skip empty sentences
+            if not sentence.strip():
                 continue
+                
+            # Clean up whitespace
+            sentence = sentence.strip()
+            words = sentence.split()
             
-            # Process all markdown files in the sigil directory
-            for file in sigil_path.glob('**/*.md'):
-                if 'gizzard' not in file.name:
-                    print(f"Found markdown file: {file}")  # Debug
-                    result = self.process_file(str(file))
-                    if result:
-                        content, relationships = result
-                        if content:  # Only add non-empty content
-                            print(f"Adding content from {file}")  # Debug
-                            all_content.append(content)
-                        if relationships:  # Only add non-empty relationships
-                            all_relationships.extend(relationships)
-        
-        print(f"Total content pieces collected: {len(all_content)}")  # Debug
-        print(f"Total relationships collected: {len(all_relationships)}")  # Debug
-        
-        # Format content for natural language output
-        formatted_content = []
-        
-        # Add identity and actions
-        formatted_content.append(f"Identity: {kernel_data.get('identity', '')}")
-        formatted_content.append("\nActions:")
-        for action in kernel_data.get('actions', []):
-            formatted_content.append(f"- {action}")
-        
-        # Process and format the content
-        current_category = None
-        for content_piece in all_content:
-            # Split into lines
-            lines = content_piece.split('\n')
-            for line in lines:
-                if not line.strip():
+            # Skip if sentence is too short
+            if len(words) < 3:
+                continue
+                
+            # Check if sentence contains special terms
+            special_terms_found = [term for term in special_terms if term.lower() in sentence.lower()]
+            
+            # Process words
+            cleaned_words = []
+            skip_next = False
+            
+            for i, word in enumerate(words):
+                if skip_next:
+                    skip_next = False
                     continue
                     
-                # Check for category prefix (e: or c:)
-                if line.startswith('e:'):
-                    current_category = 'Ethics'
-                    title = line[2:].strip()
-                    formatted_content.append(f"\n## {title}")
-                elif line.startswith('c:'):
-                    current_category = 'Concepts'
-                    title = line[2:].strip()
-                    formatted_content.append(f"\n## {title}")
+                # Preserve special terms
+                if any(term.lower() in word.lower() for term in special_terms_found):
+                    cleaned_words.append(word)
+                    continue
+                    
+                # Skip common words and patterns
+                if word.lower() in {
+                    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+                    'is', 'are', 'was', 'were', 'be', 'been', 'being',
+                    'have', 'has', 'had', 'having',
+                    'do', 'does', 'did', 'doing',
+                    'can', 'could', 'will', 'would', 'shall', 'should',
+                    'may', 'might', 'must',
+                    'very', 'really', 'quite', 'rather', 'somewhat',
+                    'just', 'only', 'also', 'then', 'than',
+                    'that', 'which', 'who', 'whom', 'whose',
+                    'when', 'where', 'why', 'how',
+                    'this', 'these', 'those', 'there',
+                    'about', 'into', 'onto', 'upon',
+                    'among', 'between', 'through'
+                }:
+                    continue
+                    
+                # Skip redundant pairs
+                if word.lower() in {'completely', 'totally', 'absolutely', 'entirely', 'fully', 'thoroughly'}:
+                    skip_next = True
+                    continue
+                    
+                # Remove common suffixes
+                word = re.sub(r'(ing|ed|ly|ment|ness|tion|sion)$', '', word)
+                
+                # Only add if word is not empty after processing
+                if word and len(word) > 1:
+                    cleaned_words.append(word)
+            
+            # Handle long sentences through summarization
+            if len(cleaned_words) > 30:
+                # Extract key components: subject, verb, object, and special terms
+                key_terms = []
+                for word in cleaned_words:
+                    if any(term.lower() in word.lower() for term in special_terms_found):
+                        key_terms.append(word)
+                
+                # Keep the first and last few words to maintain context
+                context_start = ' '.join(cleaned_words[:3])
+                context_end = ' '.join(cleaned_words[-3:])
+                
+                # Combine key components with context
+                if key_terms:
+                    # If we have special terms, use them as anchors
+                    compressed = f"{context_start} {' '.join(key_terms)} {context_end}"
                 else:
-                    # Process the content line
-                    # Replace relationship arrows with natural language
-                    line = line.replace('\u2227', ' and ')
-                    # Add to formatted content
-                    formatted_content.append(line)
+                    # If no special terms, keep the most important parts
+                    compressed = f"{context_start} ... {context_end}"
+                
+                cleaned_sentences.append(compressed)
+            else:
+                # For shorter sentences, just join the cleaned words
+                cleaned_sentences.append(' '.join(cleaned_words))
         
-        # Add relationships section
-        if all_relationships:
-            formatted_content.append("\n## Relationships")
-            for before, after in all_relationships:
-                formatted_content.append(f"- {before} relates to {after}")
+        # Join sentences with proper spacing, removing any that became too short
+        return ' '.join(s for s in cleaned_sentences if len(s.split()) >= 3)
+
+    def validate_kernel(self, kernel: Dict[str, Any]) -> bool:
+        """Validate kernel structure against schema."""
+        try:
+            validate(instance=kernel, schema=self.kernel_schema)
+            return True
+        except ValidationError as e:
+            print(f"Validation error: {str(e)}")
+            return False
+
+    def process_kernel(self, kernel_path: str, output_path: str) -> bool:
+        """Process a kernel configuration file."""
+        # First validate WONDER_ROOT
+        is_valid, error = self.validate_wonder_root()
+        if not is_valid:
+            print(error)
+            return False
         
+        print(f"Loading kernel from: {os.path.abspath(kernel_path)}")
+        
+        # Validate YAML syntax
+        is_valid, error = validate_yaml_file(kernel_path)
+        if not is_valid:
+            print(error)
+            return False
+        
+        # Load and validate kernel schema
+        with open(kernel_path, 'r') as f:
+            try:
+                kernel = yaml.safe_load(f)
+                kernel_name = next(iter(kernel))
+                kernel_data = kernel[kernel_name]
+                
+                # Update sigil_dirs based on kernel configuration
+                self.sigil_dirs = [os.path.join(self.wonder_root, sigil) for sigil in kernel_data.get('sigils', [])]
+                self.sigil_files = []
+                self.load_sigil_files()
+                
+                print(f"Found {len(self.sigil_files)} files to process")
+                
+                # Process the kernel data
+                processed = self.process_kernel_data(kernel_data)
+                
+                # Write output
+                print(f"Writing output to: {output_path}")
+                self.write_output(kernel_name, processed, output_path)
+                
+                # Print token reduction statistics
+                if self.token_stats:
+                    self.print_token_stats()
+                else:
+                    print("No files were processed. Please check the paths in your kernel configuration.")
+                
+                return True
+                
+            except Exception as e:
+                print(f"Error loading kernel configuration: {str(e)}")
+                return False
+
+    def process_kernel_data(self, kernel_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process the kernel content."""
+        # Transform the kernel data to match our internal structure
+        processed = {
+            "kernel": {
+                "name": "cinder_picokernel",
+                "repository": kernel_data.get("repo", ""),
+                "seed_file": kernel_data.get("seed", "")
+            },
+            "metadata": {
+                "version": "1.0",
+                "description": kernel_data.get("prompt", "")
+            },
+            "identity": {
+                "name": "Cinder",
+                "description": kernel_data.get("identity", "")
+            },
+            "actions": [action.strip() for action in kernel_data.get("actions", "").split(".")],
+            "content": [],
+            "relationships": []
+        }
+        
+        # Track seen relationships to prevent duplicates
+        seen_relationships = set()
+        
+        # Process each sigil file
+        for sigil_file in self.sigil_files:
+            try:
+                print(f"Processing file: {sigil_file}")  # Debug
+                
+                # Read and process the markdown file
+                with open(sigil_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Extract title and content
+                title_match = re.match(r'^#\s+(.+)$', content, re.MULTILINE)
+                title = title_match.group(1) if title_match else os.path.splitext(os.path.basename(sigil_file))[0]
+                
+                # Extract relationships
+                relationships = []
+                for rel_match in re.finditer(r'\[\[(.*?)\]\]', content):
+                    rel = rel_match.group(1)
+                    if rel not in seen_relationships:
+                        relationships.append(rel)
+                        seen_relationships.add(rel)
+                
+                # Clean up content
+                content = re.sub(r'\[\[(.*?)\]\]', r'\1', content)  # Remove link syntax
+                content = re.sub(r'^#\s+.*$', '', content, flags=re.MULTILINE)  # Remove headers
+                content = re.sub(r'\n{3,}', '\n\n', content)  # Normalize spacing
+                content = content.strip()
+                
+                # Apply content reduction
+                original_tokens = len(content.split())
+                content = self.clean_content(content)
+                processed_tokens = len(content.split())
+                
+                # Add to processed content
+                processed["content"].append({
+                    "title": title,
+                    "content": content,
+                    "relationships": relationships
+                })
+                
+                # Add relationships to global list if not already present
+                for rel in relationships:
+                    if rel not in seen_relationships:
+                        processed["relationships"].append(rel)
+                        seen_relationships.add(rel)
+                
+                # Log token reduction
+                reduction = ((original_tokens - processed_tokens) / original_tokens) * 100 if original_tokens > 0 else 0
+                print(f"Token reduction for {os.path.basename(sigil_file)}: {reduction:.2f}%")
+                
+                # Store statistics
+                self.token_stats[str(sigil_file)] = TokenStats(
+                    original_tokens=original_tokens,
+                    processed_tokens=processed_tokens,
+                    reduction_ratio=reduction / 100,
+                    file_path=str(sigil_file)
+                )
+                
+            except Exception as e:
+                print(f"Error processing {sigil_file}: {str(e)}")
+                continue
+        
+        return processed
+
+    def write_output(self, kernel_name, kernel_data, output_path):
+        """Write the processed content to the output file."""
         # Create the optimized content for ChatGPT ingestion
         optimized_content = {
             'kernel': kernel_name,
             'metadata': {
-                'repository': kernel_data.get('repo', ''),
-                'seed': kernel_data.get('seed', ''),
-                'identity': kernel_data.get('identity', {}),
-                'actions': kernel_data.get('actions', [])
+                'repository': kernel_data['kernel']['repository'],
+                'seed': kernel_data['kernel']['seed_file'],
+                'version': kernel_data['metadata']['version'],
+                'description': kernel_data['metadata']['description']
             },
-            'content': '\n'.join(formatted_content),
-            'relationships': [
-                {
-                    'from': before,
-                    'to': after,
-                    'type': 'relates_to'
-                }
-                for before, after in all_relationships
-            ]
+            'identity': kernel_data['identity'],
+            'actions': [action for action in kernel_data['actions'] if action],  # Filter out empty actions
+            'content': kernel_data['content'],
+            'relationships': kernel_data['relationships']
         }
         
-        # Write the optimized output for ChatGPT
-        output_path = self.resolve_path(output_path)
-        print(f"Writing output to: {output_path}")  # Debug
+        # Write the optimized output
         with open(output_path, 'w') as f:
-            yaml.dump(optimized_content, f, sort_keys=False)
-        
-        # Print token statistics to stdout
+            yaml.dump(optimized_content, f, sort_keys=False, default_flow_style=False, allow_unicode=True)
+
+    def print_token_stats(self):
+        """Print token reduction statistics to stdout."""
         print("\nToken Reduction Statistics:")
         print("-" * 80)
         print(f"{'File':<50} {'Original':>10} {'Processed':>10} {'Reduction':>10}")
@@ -323,12 +572,55 @@ class GizzardProcessor:
         print("-" * 80)
         print(f"{'TOTAL':<50} {total_original:>10} {total_processed:>10} {total_reduction:>10.2%}")
 
-def main():
-    import argparse
+    def load_sigil_files(self):
+        """Load all sigil files from the specified directories."""
+        for sigil_dir in self.sigil_dirs:
+            for root, _, files in os.walk(sigil_dir):
+                for file in files:
+                    if file.endswith(('.md', '.markdown')):
+                        self.sigil_files.append(os.path.join(root, file))
+
+def validate_yaml_file(file_path):
+    """Validate a YAML file for syntax and structure.
+    Returns (is_valid, error_message)"""
+    try:
+        with open(file_path, 'r') as f:
+            yaml.safe_load(f)
+        return True, None
+    except yaml.YAMLError as e:
+        return False, f"YAML validation error in {file_path}: {str(e)}"
+    except Exception as e:
+        return False, f"Error reading {file_path}: {str(e)}"
+
+def validate_kernel_schema(kernel_data):
+    """Validate kernel YAML against expected schema.
+    Returns (is_valid, error_message)"""
+    schema = {
+        "type": "object",
+        "required": ["repo", "seed", "sigils", "identity", "actions"],
+        "properties": {
+            "repo": {"type": "string"},
+            "seed": {"type": "string"},
+            "sigils": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "identity": {"type": "string"},
+            "actions": {"type": "string"},
+            "prompt": {"type": "string"}
+        }
+    }
     
-    parser = argparse.ArgumentParser(description='Process sigils using gizzard optimization')
-    parser.add_argument('kernel', help='Path to the kernel YAML file')
-    parser.add_argument('--output', '-o', default='gizzard_output.yaml', help='Output file for processed content')
+    try:
+        jsonschema.validate(instance=kernel_data, schema=schema)
+        return True, None
+    except jsonschema.exceptions.ValidationError as e:
+        return False, f"Kernel schema validation error: {str(e)}"
+
+def main():
+    parser = argparse.ArgumentParser(description='Process kernel files for Wonder.')
+    parser.add_argument('kernel', help='Path to the kernel configuration file')
+    parser.add_argument('--output', help='Path for the output file', required=True)
     args = parser.parse_args()
     
     # Get the base directory (where this script is located)
