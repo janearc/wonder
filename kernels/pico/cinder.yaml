@@ -6,6 +6,9 @@ cinder_picokernel:
     - sigil/core/concept/
     - sigil/core/axiom/
     - sigil/core/process/
+    - sigil/core/system/development/process
+    - sigil/core/system/development/concept
+    - sigil/core/system/primitive
     - sigil/metareal/cinder/ethic/
     - sigil/metareal/cinder/concept/
     - sigil/metareal/cinder/people/
