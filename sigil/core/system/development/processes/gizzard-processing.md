@@ -1,4 +1,4 @@
-# gizzard processing
+# Gizzard Processing
 
 Gizzard processing is the act of performing a two-pass ingestion of a
 bicamerally legible framework. The first pass uses a language model to distill

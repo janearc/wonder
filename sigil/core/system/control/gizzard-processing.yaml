@@ -1,0 +1,83 @@
+gizzard_processing:
+  core_principles:
+    preserve_relationships: true
+    maintain_structure: true
+    reduce_redundancy: true
+    use_symbols: true
+    bicameral_legibility: true
+
+  symbol_mapping:
+    categories:
+      ethic: "e"
+      concept: "c"
+      axiom: "a"
+      process: "p"
+      system: "s"
+
+  relationship_notation:
+    arrow: "→"
+    concept_separator: "⋅"
+    relationship_separator: "∧"
+    alternative_separator: "∨"
+
+  content_reduction:
+    remove_articles: true
+    remove_auxiliary_verbs: true
+    convert_sentences: true
+    negation_prefix: "¬"
+    hierarchy_prefix: "1:"
+
+  pattern_recognition:
+    use_symbols: true
+    group_concepts: true
+    use_indentation: true
+    cross_reference_symbol: "@"
+
+  special_cases:
+    preserve_quotes: true
+    preserve_numbers: true
+    preserve_terminology: true
+    optional_brackets: "[]"
+
+  validation:
+    traceability: true
+    bidirectional_relationships: true
+    preserve_critical_info: true
+    reconstructible: true
+    preserve_terms: true
+
+  processing_order:
+    - identify_category
+    - apply_symbol_mapping
+    - reduce_content
+    - apply_pattern_recognition
+    - validate
+    - format
+
+  usage_guidelines:
+    process_when:
+      token_limits_concern: true
+      runtime_efficiency_critical: true
+      full_context_impossible: true
+    preserve_original_when:
+      during_development: true
+      full_nuance_required: true
+      human_readability_primary: true
+    integration:
+      use_processed_for_runtime: true
+      maintain_original_for_development: true
+      version_control_both: true
+    avoid_when:
+      context_critical: true
+      exact_wording_required: true
+      debugging_needed: true
+
+  example_transformations:
+    - input: |
+        The ethic of care emphasizes maintaining and nurturing relationships while
+        acknowledging the importance of mutual growth and support.
+      output: "E:care->maintain,nurture;growth,support"
+    - input: |
+        Participatory development requires both human and AI participants to engage
+        in meaningful dialogue about system design and evolution.
+      output: "P:dev->human,ai;dialogue;design,evolution" 
