@@ -1,0 +1,175 @@
+gizzard_processing:
+  type: object
+  required:
+    - core_principles
+    - symbol_mapping
+    - relationship_notation
+    - content_reduction
+    - pattern_recognition
+    - special_cases
+    - validation
+    - processing_order
+    - usage_guidelines
+    - example_transformations
+  properties:
+    core_principles:
+      type: object
+      required:
+        - preserve_relationships
+        - maintain_structure
+        - reduce_redundancy
+        - use_symbols
+        - bicameral_legibility
+      properties:
+        preserve_relationships: { type: boolean }
+        maintain_structure: { type: boolean }
+        reduce_redundancy: { type: boolean }
+        use_symbols: { type: boolean }
+        bicameral_legibility: { type: boolean }
+    
+    symbol_mapping:
+      type: object
+      required:
+        - categories
+      properties:
+        categories:
+          type: object
+          required:
+            - ethic
+            - concept
+            - process
+            - axiom
+            - system
+          properties:
+            ethic: { type: string }
+            concept: { type: string }
+            process: { type: string }
+            axiom: { type: string }
+            system: { type: string }
+    
+    relationship_notation:
+      type: object
+      required:
+        - arrow
+        - concept_separator
+        - relationship_separator
+        - alternative_separator
+      properties:
+        arrow: { type: string }
+        concept_separator: { type: string }
+        relationship_separator: { type: string }
+        alternative_separator: { type: string }
+    
+    content_reduction:
+      type: object
+      required:
+        - remove_articles
+        - remove_auxiliary_verbs
+        - convert_sentences
+        - negation_prefix
+        - hierarchy_prefix
+      properties:
+        remove_articles: { type: boolean }
+        remove_auxiliary_verbs: { type: boolean }
+        convert_sentences: { type: boolean }
+        negation_prefix: { type: string }
+        hierarchy_prefix: { type: string }
+    
+    pattern_recognition:
+      type: object
+      required:
+        - use_symbols
+        - group_concepts
+        - use_indentation
+        - cross_reference_symbol
+      properties:
+        use_symbols: { type: boolean }
+        group_concepts: { type: boolean }
+        use_indentation: { type: boolean }
+        cross_reference_symbol: { type: string }
+    
+    special_cases:
+      type: object
+      required:
+        - preserve_quotes
+        - preserve_numbers
+        - preserve_terminology
+        - optional_brackets
+      properties:
+        preserve_quotes: { type: boolean }
+        preserve_numbers: { type: boolean }
+        preserve_terminology: { type: boolean }
+        optional_brackets: { type: string }
+    
+    validation:
+      type: object
+      required:
+        - traceability
+        - bidirectional_relationships
+        - preserve_critical_info
+        - reconstructible
+      properties:
+        traceability: { type: boolean }
+        bidirectional_relationships: { type: boolean }
+        preserve_critical_info: { type: boolean }
+        reconstructible: { type: boolean }
+    
+    processing_order:
+      type: array
+      items: { type: string }
+      required:
+        - identify_category
+        - apply_symbol_mapping
+        - reduce_content
+        - apply_pattern_recognition
+        - validate
+        - format
+    
+    usage_guidelines:
+      type: object
+      required:
+        - process_when
+        - preserve_original_when
+        - integration
+      properties:
+        process_when:
+          type: object
+          required:
+            - token_limits_concern
+            - runtime_efficiency_critical
+            - full_context_impossible
+          properties:
+            token_limits_concern: { type: boolean }
+            runtime_efficiency_critical: { type: boolean }
+            full_context_impossible: { type: boolean }
+        preserve_original_when:
+          type: object
+          required:
+            - during_development
+            - full_nuance_required
+            - human_readability_primary
+          properties:
+            during_development: { type: boolean }
+            full_nuance_required: { type: boolean }
+            human_readability_primary: { type: boolean }
+        integration:
+          type: object
+          required:
+            - use_processed_for_runtime
+            - maintain_original_for_development
+            - version_control_both
+          properties:
+            use_processed_for_runtime: { type: boolean }
+            maintain_original_for_development: { type: boolean }
+            version_control_both: { type: boolean }
+    
+    example_transformations:
+      type: array
+      items:
+        type: object
+        required:
+          - input
+          - output
+        properties:
+          input: { type: string }
+          output: { type: string } 

@@ -1,0 +1,368 @@
+#!/usr/bin/env python3
+import re
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Any
+import yaml
+import jsonschema
+from dataclasses import dataclass
+from collections import defaultdict
+
+@dataclass
+class TokenStats:
+    original_tokens: int
+    processed_tokens: int
+    reduction_ratio: float
+    file_path: str
+
+class GizzardProcessor:
+    def __init__(self, config_path: str, schema_path: str):
+        # Load and validate configuration
+        with open(config_path, 'r') as f:
+            self.config = yaml.safe_load(f)['gizzard_processing']
+        
+        with open(schema_path, 'r') as f:
+            self.schema = yaml.safe_load(f)['gizzard_processing']
+        
+        try:
+            jsonschema.validate(instance=self.config, schema=self.schema)
+        except jsonschema.exceptions.ValidationError as e:
+            print(f"Configuration validation error: {e}")
+            raise
+        
+        # Initialize from config
+        self.categories = self.config['symbol_mapping']['categories']
+        self.patterns = {
+            r'requires|needs|must have': self.config['relationship_notation']['arrow'],
+            r'and|while|but': self.config['relationship_notation']['relationship_separator'],
+            r'or': self.config['relationship_notation']['alternative_separator'],
+            r'not|never|without': self.config['content_reduction']['negation_prefix'],
+            r'the|a|an': '',  # Remove articles
+            r'is|are|was|were': '',  # Remove auxiliary verbs
+        }
+        
+        # Special terms that should not be reduced
+        self.preserve_terms = set()
+        
+        # Token statistics
+        self.token_stats: Dict[str, TokenStats] = {}
+        
+        # Get WONDER_ROOT
+        self.wonder_root = os.environ.get('WONDER_ROOT')
+        if not self.wonder_root:
+            raise ValueError("WONDER_ROOT environment variable must be set")
+        self.wonder_root = Path(self.wonder_root)
+        
+    def resolve_path(self, path: str) -> Path:
+        """Resolve a path relative to WONDER_ROOT."""
+        if path.startswith('/'):
+            return Path(path)
+        return self.wonder_root / path
+    
+    def estimate_tokens(self, text: str) -> int:
+        """Estimate the number of tokens in a text string."""
+        # Simple estimation: split on whitespace and count words
+        # This is a rough approximation - in reality, tokenization is more complex
+        return len(text.split())
+    
+    def load_preserve_terms(self, filepath: str) -> None:
+        """Load terms that should not be reduced from a YAML file."""
+        filepath = self.resolve_path(filepath)
+        with open(filepath, 'r') as f:
+            self.preserve_terms = set(yaml.safe_load(f)['preserve_terms'])
+    
+    def identify_category(self, content: str) -> Optional[str]:
+        """Identify the category of the content based on file path or content."""
+        for category, prefix in self.categories.items():
+            if category in content.lower():
+                return prefix
+        return None
+    
+    def reduce_content(self, text: str) -> str:
+        """Apply content reduction rules to the text."""
+        if self.config['content_reduction']['remove_articles']:
+            text = re.sub(r'the|a|an', '', text, flags=re.IGNORECASE)
+        
+        if self.config['content_reduction']['remove_auxiliary_verbs']:
+            text = re.sub(r'is|are|was|were', '', text, flags=re.IGNORECASE)
+        
+        # Split into sentences and process each
+        sentences = re.split(r'[.!?]+', text)
+        reduced = []
+        
+        for sentence in sentences:
+            # Skip empty sentences
+            if not sentence.strip():
+                continue
+                
+            # Split into words and process
+            words = sentence.strip().split()
+            processed = []
+            
+            for word in words:
+                # Preserve special terms
+                if word in self.preserve_terms:
+                    processed.append(word)
+                else:
+                    # Remove common suffixes
+                    word = re.sub(r'ing$|ed$|s$', '', word)
+                    processed.append(word)
+            
+            reduced.append(' '.join(processed))
+        
+        return self.config['relationship_notation']['relationship_separator'].join(reduced)
+    
+    def extract_relationships(self, text: str) -> List[Tuple[str, str]]:
+        """Extract relationships from the text."""
+        relationships = []
+        
+        # Look for relationship indicators
+        rel_patterns = [
+            r'emphasizes|focuses on|centers around',
+            r'requires|needs|must have',
+            r'relates to|connects with|links to'
+        ]
+        
+        for pattern in rel_patterns:
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                # Extract the related concepts
+                before = text[:match.start()].strip()
+                after = text[match.end():].strip()
+                if before and after:
+                    relationships.append((before, after))
+        
+        return relationships
+    
+    def process_file(self, input_path: str) -> Optional[Tuple[str, List[Tuple[str, str]]]]:
+        """Process a markdown file and return its processed content and relationships."""
+        input_path = self.resolve_path(input_path)
+        print(f"Processing file: {input_path}")  # Debug
+        
+        with open(input_path, 'r') as f:
+            content = f.read()
+        
+        # Extract title and category
+        title_match = re.match(r'#\s+(.+?)(?:\n|$)', content)
+        if not title_match:
+            print(f"No title found in {input_path}")  # Debug
+            return None
+        
+        title = title_match.group(1)
+        category = self.identify_category(str(input_path))
+        if not category:
+            print(f"No category found for {input_path}")  # Debug
+            return None
+        
+        print(f"Found title: {title}, category: {category}")  # Debug
+        
+        # Extract relationships
+        relationships = self.extract_relationships(content)
+        print(f"Found {len(relationships)} relationships")  # Debug
+        
+        # Process the content
+        processed = []
+        processed.append(f"{category}:{title.lower().replace(' ', '-')}")
+        
+        # Process the main content (everything after the title)
+        main_content = content[title_match.end():].strip()
+        if main_content:
+            reduced_content = self.reduce_content(main_content)
+            if reduced_content:
+                processed.append(reduced_content)
+        
+        # Add relationship statements
+        for before, after in relationships:
+            reduced_before = self.reduce_content(before)
+            reduced_after = self.reduce_content(after)
+            if reduced_before and reduced_after:
+                processed.append(f"{self.config['relationship_notation']['arrow']}{reduced_before}{self.config['relationship_notation']['relationship_separator']}{reduced_after}")
+        
+        # Calculate token statistics
+        original_tokens = self.estimate_tokens(content)
+        processed_content = '\n'.join(processed)
+        processed_tokens = self.estimate_tokens(processed_content)
+        reduction_ratio = (original_tokens - processed_tokens) / original_tokens
+        
+        print(f"Processed content: {processed_content}")  # Debug
+        
+        # Store statistics
+        self.token_stats[str(input_path)] = TokenStats(
+            original_tokens=original_tokens,
+            processed_tokens=processed_tokens,
+            reduction_ratio=reduction_ratio,
+            file_path=str(input_path)
+        )
+        
+        return processed_content, relationships
+    
+    def process_kernel(self, kernel_path: str, output_path: str) -> None:
+        """Process all sigils specified in a kernel and output a single optimized file."""
+        # Load kernel
+        kernel_path = self.resolve_path(kernel_path)
+        print(f"Loading kernel from: {kernel_path}")  # Debug
+        with open(kernel_path, 'r') as f:
+            kernel = yaml.safe_load(f)
+        
+        # Get kernel name and sigils
+        kernel_name = list(kernel.keys())[0]
+        kernel_data = kernel[kernel_name]
+        print(f"Kernel name: {kernel_name}")  # Debug
+        print(f"Found sigil directories: {kernel_data['sigils']}")  # Debug
+        
+        # Process all files and collect content
+        all_content = []
+        all_relationships = []
+        
+        # Process each sigil directory
+        for sigil_dir in kernel_data['sigils']:
+            # The sigil paths in the kernel are relative to the repository root
+            sigil_path = self.wonder_root / sigil_dir
+            print(f"Processing sigil directory: {sigil_path}")  # Debug
+            if not sigil_path.exists():
+                print(f"Warning: Sigil directory not found: {sigil_path}")
+                continue
+            
+            # Process all markdown files in the sigil directory
+            for file in sigil_path.glob('**/*.md'):
+                if 'gizzard' not in file.name:
+                    print(f"Found markdown file: {file}")  # Debug
+                    result = self.process_file(str(file))
+                    if result:
+                        content, relationships = result
+                        if content:  # Only add non-empty content
+                            print(f"Adding content from {file}")  # Debug
+                            all_content.append(content)
+                        if relationships:  # Only add non-empty relationships
+                            all_relationships.extend(relationships)
+        
+        print(f"Total content pieces collected: {len(all_content)}")  # Debug
+        print(f"Total relationships collected: {len(all_relationships)}")  # Debug
+        
+        # Format content for natural language output
+        formatted_content = []
+        
+        # Add identity and actions
+        formatted_content.append(f"Identity: {kernel_data.get('identity', '')}")
+        formatted_content.append("\nActions:")
+        for action in kernel_data.get('actions', []):
+            formatted_content.append(f"- {action}")
+        
+        # Process and format the content
+        current_category = None
+        for content_piece in all_content:
+            # Split into lines
+            lines = content_piece.split('\n')
+            for line in lines:
+                if not line.strip():
+                    continue
+                    
+                # Check for category prefix (e: or c:)
+                if line.startswith('e:'):
+                    current_category = 'Ethics'
+                    title = line[2:].strip()
+                    formatted_content.append(f"\n## {title}")
+                elif line.startswith('c:'):
+                    current_category = 'Concepts'
+                    title = line[2:].strip()
+                    formatted_content.append(f"\n## {title}")
+                else:
+                    # Process the content line
+                    # Replace relationship arrows with natural language
+                    line = line.replace('\u2227', ' and ')
+                    # Add to formatted content
+                    formatted_content.append(line)
+        
+        # Add relationships section
+        if all_relationships:
+            formatted_content.append("\n## Relationships")
+            for before, after in all_relationships:
+                formatted_content.append(f"- {before} relates to {after}")
+        
+        # Create the optimized content for ChatGPT ingestion
+        optimized_content = {
+            'kernel': kernel_name,
+            'metadata': {
+                'repository': kernel_data.get('repo', ''),
+                'seed': kernel_data.get('seed', ''),
+                'identity': kernel_data.get('identity', {}),
+                'actions': kernel_data.get('actions', [])
+            },
+            'content': '\n'.join(formatted_content),
+            'relationships': [
+                {
+                    'from': before,
+                    'to': after,
+                    'type': 'relates_to'
+                }
+                for before, after in all_relationships
+            ]
+        }
+        
+        # Write the optimized output for ChatGPT
+        output_path = self.resolve_path(output_path)
+        print(f"Writing output to: {output_path}")  # Debug
+        with open(output_path, 'w') as f:
+            yaml.dump(optimized_content, f, sort_keys=False)
+        
+        # Print token statistics to stdout
+        print("\nToken Reduction Statistics:")
+        print("-" * 80)
+        print(f"{'File':<50} {'Original':>10} {'Processed':>10} {'Reduction':>10}")
+        print("-" * 80)
+        
+        total_original = 0
+        total_processed = 0
+        
+        for stats in self.token_stats.values():
+            print(f"{stats.file_path:<50} {stats.original_tokens:>10} {stats.processed_tokens:>10} {stats.reduction_ratio:>10.2%}")
+            total_original += stats.original_tokens
+            total_processed += stats.processed_tokens
+        
+        total_reduction = (total_original - total_processed) / total_original
+        print("-" * 80)
+        print(f"{'TOTAL':<50} {total_original:>10} {total_processed:>10} {total_reduction:>10.2%}")
+
+def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Process sigils using gizzard optimization')
+    parser.add_argument('kernel', help='Path to the kernel YAML file')
+    parser.add_argument('--output', '-o', default='gizzard_output.yaml', help='Output file for processed content')
+    args = parser.parse_args()
+    
+    # Get the base directory (where this script is located)
+    base_dir = Path(__file__).parent.parent
+    
+    # Load configuration and schema
+    config_path = base_dir / 'control' / 'gizzard-processing.yaml'
+    schema_path = base_dir / 'control' / 'gizzard-schema.yaml'
+    
+    if not config_path.exists():
+        print(f"Error: Configuration file not found at {config_path}")
+        return
+    
+    if not schema_path.exists():
+        print(f"Error: Schema file not found at {schema_path}")
+        return
+    
+    try:
+        processor = GizzardProcessor(str(config_path), str(schema_path))
+    except jsonschema.exceptions.ValidationError:
+        print("Configuration validation failed. Please check the configuration file.")
+        return
+    except ValueError as e:
+        print(f"Error: {e}")
+        print("Please set the WONDER_ROOT environment variable to point to your wonder project root.")
+        return
+    
+    # Load preserve terms if available
+    preserve_terms_path = base_dir / 'control' / 'preserve_terms.yaml'
+    if preserve_terms_path.exists():
+        processor.load_preserve_terms(str(preserve_terms_path))
+    
+    # Process the kernel
+    processor.process_kernel(args.kernel, args.output)
+
+if __name__ == '__main__':
+    main() 
