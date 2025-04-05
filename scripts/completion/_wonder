@@ -1,0 +1,21 @@
+#compdef wonder
+
+_wonder() {
+    local -a commands
+    commands=(
+        'build:Build the project (runs clean, format, lint, and test)'
+        'clean:Clean build artifacts and temporary files'
+        'docs:Generate documentation using pdoc'
+        'example:Example: Refine the Cinder applications kernel'
+        'format:Format code using black and isort'
+        'install:Install the project in development mode'
+        'lint:Run linting and type checking'
+        'list-picokernels:List all available picokernel applications and their descriptions'
+        'refine:Generate a refined-kernel from a picokernel application'
+        'test:Run tests with pytest'
+    )
+
+    _describe -t commands 'wonder command' commands
+}
+
+_wonder "$@" 
