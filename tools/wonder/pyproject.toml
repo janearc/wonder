@@ -2,7 +2,7 @@
 name = "wonder"
 version = "0.1.0"
 description = "Wonder framework CLI tool"
-authors = ["Jane Arc <jane@arc.codes>"]
+authors = ["jane mf arc <jane.arc@pobox.com>"]
 readme = "README.md"
 packages = [{include = "wonder", from = "src"}]
 
@@ -11,6 +11,7 @@ python = "^3.9"
 invoke = "^2.2.0"
 pyyaml = "^6.0.1"
 rich = "^13.7.0"
+gizzard = {path = "../gizzard", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"
