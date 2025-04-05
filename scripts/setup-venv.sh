@@ -21,7 +21,7 @@ source .venv/bin/activate
 # Upgrade pip and install core dependencies
 echo "📦 Installing core dependencies..."
 pip install --upgrade pip
-pip install invoke==2.2.0 pyyaml==6.0.1 rich==13.7.0
+pip install invoke==2.2.0 pyyaml==6.0.1 rich==13.7.0 typer==0.9.0 jsonschema==4.21.1
 
 # Verify invoke is installed
 if ! python -c "import invoke" 2>/dev/null; then
@@ -30,10 +30,16 @@ if ! python -c "import invoke" 2>/dev/null; then
 fi
 
 # Verify other dependencies
-if ! python -c "import yaml, rich" 2>/dev/null; then
+if ! python -c "import yaml, rich, typer, jsonschema" 2>/dev/null; then
     echo "❌ Failed to install required dependencies"
     exit 1
 fi
+
+# Install Gizzard tool in development mode
+echo "📦 Installing Gizzard tool..."
+cd tools/gizzard
+pip install -e .
+cd "$PROJECT_ROOT"
 
 # Install Wonder tool in development mode
 echo "📦 Installing Wonder tool..."

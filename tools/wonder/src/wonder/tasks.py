@@ -6,11 +6,14 @@ from typing import Optional
 import yaml
 from rich.console import Console
 from rich.table import Table
+from gizzard.cli import process as gizzard_process
 
 WONDER_ROOT = Path(__file__).parent.parent.parent.parent.parent
 GIZZARD_OUTPUT = WONDER_ROOT / "gizzard-output"
 DOCS_DIR = WONDER_ROOT / "docs"
 PICOKERNEL_DIR = WONDER_ROOT / "kernels" / "pico"
+GIZZARD_CONFIG = WONDER_ROOT / "tools/gizzard/config/gizzard.yaml"
+GIZZARD_SCHEMA = WONDER_ROOT / "tools/gizzard/config/schema.yaml"
 
 console = Console()
 
@@ -64,7 +67,15 @@ def refine(ctx, kernel_name: str, output_path: Optional[str] = None):
     
     GIZZARD_OUTPUT.mkdir(exist_ok=True)
     print(f"🔄 Refining {kernel_name} picokernel...")
-    ctx.run(f"WONDER_ROOT={WONDER_ROOT} gizzard process {kernel_path} {output_path}")
+    
+    # Call gizzard process function directly
+    gizzard_process(
+        kernel_path=Path(kernel_path),
+        output_path=Path(output_path),
+        config_path=Path(GIZZARD_CONFIG),
+        schema_path=Path(GIZZARD_SCHEMA),
+        verbose=False
+    )
 
 @task
 def clean(ctx):

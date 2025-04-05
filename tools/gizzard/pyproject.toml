@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "gizzard"
+version = "0.1.0"
+description = "Wonder Framework processor for generating refined-kernels from sigil content"
+authors = ["jane mf arc <jane.arc@pobox.com>"]
+readme = "README.md"
+packages = [{include = "gizzard", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+typer = "^0.9.0"
+rich = "^13.7.0"
+pyyaml = "^6.0.1"
+jsonschema = "^4.21.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+gizzard = "gizzard.cli:app" 

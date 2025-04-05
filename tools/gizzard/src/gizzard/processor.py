@@ -19,6 +19,92 @@ class TokenStats:
     reduction_ratio: float
     file_path: str
 
+class RelationshipAnalyzer:
+    """Analyzes relationship graphs and provides metrics."""
+    def __init__(self):
+        self.graph = defaultdict(list)
+        self.node_degrees = defaultdict(int)
+    
+    def build_relationship_graph(self, relationships: List[Dict[str, str]]) -> None:
+        """Build a graph from relationship data."""
+        self.graph.clear()
+        self.node_degrees.clear()
+        
+        for rel in relationships:
+            if isinstance(rel, dict):
+                source = rel.get('source', '')
+                target = rel.get('target', '')
+                if source and target:
+                    self.graph[source].append(target)
+                    self.node_degrees[source] += 1
+                    self.node_degrees[target] += 1
+    
+    def analyze_graph_metrics(self) -> Dict[str, float]:
+        """Calculate metrics for the relationship graph."""
+        if not self.graph:
+            return {
+                "density": 0.0,
+                "avg_clustering": 0.0,
+                "avg_degree": 0.0
+            }
+        
+        # Calculate graph density
+        n = len(self.node_degrees)
+        m = sum(len(neighbors) for neighbors in self.graph.values())
+        density = (2.0 * m) / (n * (n - 1)) if n > 1 else 0
+        
+        # Calculate average clustering coefficient
+        clustering_coeffs = []
+        for node in self.graph:
+            neighbors = set(self.graph[node])
+            if len(neighbors) < 2:
+                continue
+            
+            # Count edges between neighbors
+            edge_count = 0
+            for n1 in neighbors:
+                for n2 in neighbors:
+                    if n1 != n2 and n2 in self.graph.get(n1, []):
+                        edge_count += 1
+            
+            max_possible = len(neighbors) * (len(neighbors) - 1)
+            if max_possible > 0:
+                clustering_coeffs.append(edge_count / max_possible)
+        
+        avg_clustering = sum(clustering_coeffs) / len(clustering_coeffs) if clustering_coeffs else 0
+        avg_degree = sum(self.node_degrees.values()) / n if n > 0 else 0
+        
+        return {
+            "density": density,
+            "avg_clustering": avg_clustering,
+            "avg_degree": avg_degree
+        }
+
+class ModelContextAnalyzer:
+    """Analyzes context and provides model compatibility metrics."""
+    def __init__(self):
+        self.context_size = 0
+        self.relationship_count = 0
+        self.complexity_score = 0.0
+    
+    def analyze_context(self, content: str) -> Dict[str, Any]:
+        """Analyze the content and return context metrics."""
+        self.context_size = len(content.split())
+        # Estimate window utilization (assuming 8k token context window as base)
+        window_utilization = min(1.0, self.context_size / 8000)
+        # Count preserved special terms
+        preserved_terms = set(re.findall(r'\b(metareal|orthoreal|parareal|hyperreal|hyporeal|Rokolisk|Wonder|Cinder|sigil|kernel|ethic)\b', content))
+        term_preservation_rate = len(preserved_terms) / max(1, len(content.split()))
+        
+        return {
+            "context_size": self.context_size,
+            "window_utilization": window_utilization,
+            "term_preservation_rate": term_preservation_rate,
+            "preserved_terms": list(preserved_terms),
+            "relationship_density": self.relationship_count / max(1, self.context_size),
+            "complexity_score": self.complexity_score
+        }
+
 class GizzardProcessor:
     def __init__(self, config_path: str, schema_path: str):
         # Load and validate configuration
@@ -50,6 +136,9 @@ class GizzardProcessor:
         
         # Token statistics
         self.token_stats: Dict[str, TokenStats] = {}
+        self.total_original_tokens = 0
+        self.total_processed_tokens = 0
+        self.relationships_extracted = 0
         
         # Get WONDER_ROOT
         self.wonder_root = os.environ.get('WONDER_ROOT')
@@ -59,6 +148,9 @@ class GizzardProcessor:
         
         self.all_content = []
         self.all_relationships = []
+        
+        # Initialize context analyzer
+        self.context_analyzer = ModelContextAnalyzer()
         
         # Define kernel schema
         self.kernel_schema = {
@@ -531,6 +623,26 @@ class GizzardProcessor:
 
     def process_kernel_data(self, kernel_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process the kernel content."""
+        # Reset counters
+        self.total_original_tokens = 0
+        self.total_processed_tokens = 0
+        self.relationships_extracted = 0
+        
+        # First pass: collect all sigil titles
+        sigil_titles = set()
+        title_to_file = {}
+        for sigil_file in self.sigil_files:
+            try:
+                with open(sigil_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                title_match = re.match(r'^#\s+(.+)$', content, re.MULTILINE)
+                title = title_match.group(1) if title_match else os.path.splitext(os.path.basename(sigil_file))[0]
+                sigil_titles.add(title.lower())
+                title_to_file[title.lower()] = sigil_file
+            except Exception as e:
+                print(f"Error reading title from {sigil_file}: {str(e)}")
+                continue
+        
         # Transform the kernel data to match our internal structure
         processed = {
             "kernel": {
@@ -551,10 +663,10 @@ class GizzardProcessor:
             "relationships": []
         }
         
-        # Track all relationships
-        all_relationships = []
+        # Track relationships by source
+        relationship_map = defaultdict(set)
         
-        # Process each sigil file
+        # Second pass: process content and extract relationships
         for sigil_file in self.sigil_files:
             try:
                 print(f"Processing file: {sigil_file}")
@@ -563,43 +675,58 @@ class GizzardProcessor:
                 with open(sigil_file, 'r', encoding='utf-8') as f:
                     content = f.read()
                 
+                # Count original tokens
+                original_tokens = len(content.split())
+                self.total_original_tokens += original_tokens
+                
                 # Extract title
                 title_match = re.match(r'^#\s+(.+)$', content, re.MULTILINE)
                 title = title_match.group(1) if title_match else os.path.splitext(os.path.basename(sigil_file))[0]
+                current_title = title.lower()
                 
-                # Extract relationships before cleaning content
-                relationships = self.extract_relationships(content, title)
+                # Extract relationships by finding references to other sigil titles
+                content_lower = content.lower()
+                
+                for other_title in sigil_titles:
+                    if other_title != current_title and other_title in content_lower:
+                        # Add to our relationship map
+                        relationship_map[title].add(other_title)
+                        self.relationships_extracted += 1
                 
                 # Clean up content
-                content = re.sub(r'\[\[(.*?)\]\]', r'\1', content)  # Remove link syntax
                 content = re.sub(r'^#\s+.*$', '', content, flags=re.MULTILINE)  # Remove headers
                 content = re.sub(r'\n{3,}', '\n\n', content)  # Normalize spacing
                 content = content.strip()
                 
                 # Apply content reduction
-                original_tokens = len(content.split())
                 content = self.clean_content(content)
                 processed_tokens = len(content.split())
+                self.total_processed_tokens += processed_tokens
+                
+                # Format relationships in a token-efficient way
+                formatted_relationships = []
+                for source, targets in relationship_map.items():
+                    if targets:  # Only add if there are relationships
+                        # Clean and abbreviate the source name
+                        source_clean = self.clean_term(source)
+                        # Clean and abbreviate target names, sort for consistency
+                        target_list = sorted(self.clean_term(t) for t in targets)
+                        # Join with minimal separator
+                        rel_str = f"{source_clean}→{','.join(target_list)}"
+                        formatted_relationships.append(rel_str)
                 
                 # Add to processed content
                 processed["content"].append({
                     "title": title,
                     "content": content,
-                    "relationships": relationships
+                    "relationships": formatted_relationships
                 })
-                
-                # Add relationships to global list
-                all_relationships.extend(relationships)
-                
-                # Log token reduction
-                reduction = ((original_tokens - processed_tokens) / original_tokens) * 100 if original_tokens > 0 else 0
-                print(f"Token reduction for {os.path.basename(sigil_file)}: {reduction:.2f}%")
                 
                 # Store statistics
                 self.token_stats[str(sigil_file)] = TokenStats(
                     original_tokens=original_tokens,
                     processed_tokens=processed_tokens,
-                    reduction_ratio=reduction / 100,
+                    reduction_ratio=(original_tokens - processed_tokens) / max(1, original_tokens),
                     file_path=str(sigil_file)
                 )
                 
@@ -607,10 +734,49 @@ class GizzardProcessor:
                 print(f"Error processing {sigil_file}: {str(e)}")
                 continue
         
-        # Add all unique relationships to the kernel
-        processed["relationships"] = all_relationships
+        # Format relationships in a token-efficient way
+        formatted_relationships = []
+        for source, targets in relationship_map.items():
+            if targets:  # Only add if there are relationships
+                # Clean and abbreviate the source name
+                source_clean = self.clean_term(source)
+                # Clean and abbreviate target names, sort for consistency
+                target_list = sorted(self.clean_term(t) for t in targets)
+                # Join with minimal separator
+                rel_str = f"{source_clean}→{','.join(target_list)}"
+                formatted_relationships.append(rel_str)
+        
+        processed["relationships"] = formatted_relationships
         
         return processed
+
+    def clean_term(self, term: str) -> str:
+        """Clean and abbreviate terms for token efficiency while maintaining readability."""
+        # Convert to lower case
+        term = term.lower()
+        
+        # Handle common prefixes
+        if term.startswith('ethic of '):
+            term = 'e/' + term[9:]
+        elif term.startswith('ethic '):
+            term = 'e/' + term[6:]
+        
+        # Handle realm types
+        term = term.replace('metareal', 'meta')
+        term = term.replace('orthoreal', 'ortho')
+        term = term.replace('parareal', 'para')
+        term = term.replace('hyperreal', 'hyper')
+        term = term.replace('hyporeal', 'hypo')
+        
+        # Remove common words
+        term = term.replace(' of ', '/')
+        term = term.replace(' and ', '/')
+        term = term.replace(' the ', '/')
+        
+        # Remove spaces and normalize separators
+        term = term.replace(' ', '_')
+        
+        return term
 
     def write_output(self, kernel_name, kernel_data, output_path):
         """Write the processed content to the output file."""
@@ -637,10 +803,17 @@ class GizzardProcessor:
             'relationships': kernel_data['relationships']
         }
         
+        # Create output directory if it doesn't exist
+        output_dir = os.path.dirname(output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+        
         # Write the optimized output
         with open(output_path, 'w') as f:
             yaml.dump(optimized_content, f, sort_keys=False, default_flow_style=False, allow_unicode=True)
             
+        print(f"\n✨ Success! Refined-kernel written to: {os.path.abspath(output_path)}")
+        
         # Print framework statistics summary
         print("\nWonder Framework Statistics:")
         print("=" * 80)
@@ -707,7 +880,7 @@ class GizzardProcessor:
         for model in models:
             # Analyze content
             content_str = yaml.dump(processed_kernel)
-            context_metrics = model_analyzer.analyze_context_efficiency(content_str, model)
+            context_metrics = model_analyzer.analyze_context(content_str)
             
             results[model] = {
                 "context_metrics": context_metrics,
@@ -1038,6 +1211,31 @@ class GizzardProcessor:
             )
         
         return stats
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get processing statistics."""
+        total_files = len(self.token_stats)
+        if total_files == 0:
+            return {
+                "files_processed": 0,
+                "total_original_tokens": 0,
+                "total_processed_tokens": 0,
+                "average_reduction_percentage": 0.0,
+                "relationships_extracted": 0
+            }
+        
+        total_reduction = sum(
+            (1 - stats.reduction_ratio) * 100 
+            for stats in self.token_stats.values()
+        )
+        
+        return {
+            "files_processed": total_files,
+            "total_original_tokens": self.total_original_tokens,
+            "total_processed_tokens": self.total_processed_tokens,
+            "average_reduction_percentage": total_reduction / total_files,
+            "relationships_extracted": self.relationships_extracted
+        }
 
 def validate_yaml_file(file_path):
     """Validate a YAML file for syntax and structure.
