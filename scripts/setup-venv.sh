@@ -35,12 +35,18 @@ if ! python -c "import yaml, rich" 2>/dev/null; then
     exit 1
 fi
 
+# Install Wonder tool in development mode
+echo "📦 Installing Wonder tool..."
+cd tools/wonder
+pip install -e .
+cd "$PROJECT_ROOT"
+
 # Create wonder wrapper script
 cat > .venv/bin/wonder << EOF
 #!/bin/bash
 SCRIPT_DIR="\$(dirname "\$0")"
 source "\$SCRIPT_DIR/activate"
-python -m invoke "\$@"
+python -c "from wonder.tasks import program; program.run()" "\$@"
 EOF
 chmod +x .venv/bin/wonder
 

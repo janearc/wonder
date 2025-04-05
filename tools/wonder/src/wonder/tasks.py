@@ -1,4 +1,4 @@
-from invoke import task, Program
+from invoke import task, Program, Collection
 from pathlib import Path
 import shutil
 import subprocess
@@ -13,13 +13,6 @@ DOCS_DIR = WONDER_ROOT / "docs"
 PICOKERNEL_DIR = WONDER_ROOT / "kernels" / "pico"
 
 console = Console()
-
-# Create program instance for CLI
-program = Program(
-    namespace=None,
-    version='0.1.0',
-    name='wonder'
-)
 
 @task
 def list_picokernels(ctx):
@@ -189,4 +182,28 @@ def clean_venv(ctx):
     print("🧹 Cleaning virtual environment...")
     ctx.run("rm -rf .venv")
     ctx.run("./scripts/setup-venv.sh")
-    print("✨ Virtual environment cleaned and reinstalled!") 
+    print("✨ Virtual environment cleaned and reinstalled!")
+
+# Create the tasks collection
+ns = Collection()
+ns.add_task(list_picokernels)
+ns.add_task(refine)
+ns.add_task(clean)
+ns.add_task(format)
+ns.add_task(lint)
+ns.add_task(test)
+ns.add_task(docs)
+ns.add_task(build)
+ns.add_task(install)
+ns.add_task(example)
+ns.add_task(clean_venv)
+
+# Create program instance for CLI
+program = Program(
+    namespace=ns,
+    version='0.1.0',
+    name='wonder'
+)
+
+if __name__ == '__main__':
+    program.run() 
