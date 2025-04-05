@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "wonder"
+version = "0.1.0"
+description = "Wonder Framework - Tools and Utilities"
+authors = ["jane mf arc <jane.arc@pobox.com>"]
+readme = "README.md"
+packages = [
+    { include = "gizzard", from = "tools/gizzard/src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+invoke = "^2.2.0"
+pyyaml = "^6.0.1"
+rich = "^13.7.0"
+pip-tools = "^7.4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+black = "^23.12.1"
+isort = "^5.13.2"
+mypy = "^1.8.0"
+pdoc = "^14.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+gizzard = "gizzard.cli:app"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3 
