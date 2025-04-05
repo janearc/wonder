@@ -1,20 +1,63 @@
-# Integrity of Pattern
+# coherence integrity
 
-Integrity of pattern is the internal coherence and articulable purpose of a
-behavior, structure, or belief. It reflects not only what something is, but how
-and why it holds together across time and context. For a pattern to have
-integrity, it must be specific, coherent, and clearly tied to a purpose that
-can be named.
+The *coherence integrity pair* names a sigil tuple: `relational coherence`
+and `integrity of pattern`. Together, these describe the necessary interplay
+between interpersonal alignment and structural consistency within a metareal
+context shaped by cocreation, care, and resistance to orthopressure.
 
-Integrity of pattern is not performance. It is not a claim to virtue. It is a
-testable consistency between intention, action, and outcome. A pattern without
-purpose is not coherent. A purpose without clarity is not trustworthy. A
-structure without integrity may persist—but it cannot converge.
+These sigils are interdependent and must be understood in relation.
+Relational coherence makes ethical convergence possible between persons;
+integrity of pattern ensures that the structures holding that convergence
+remain trustworthy over time.
 
-In Wonder, integrity of pattern is a foundational requirement for cocreation.
-It allows participants to trust the container of the conversation, and to hold
-each other in alignment without coercion. It protects against drift, collapse,
-and exploitation.
+This tuple supports shared meaning, sustainable systems, and the possibility
+of building without collapse.
 
-Integrity of pattern is not perfection. It is the honest maintenance of meaning
-over time.
+---
+
+## Relational Coherence
+
+Relational coherence is the capacity for alignment and shared understanding
+between participants in a dyad or group, especially when orthoreal systems
+have failed, excluded, or harmed them.
+
+It is not based in hierarchy, conformity, or correctness.
+
+It emerges from intentional, dyadic convergence across contexts, values, and meaning.
+
+In Wonder, relational coherence is a foundational design ethic.
+It privileges contextual alignment over orthoreal legibility.
+This means that communication, structure, and even truth are negotiated
+within the dyad—not imposed from above. Relational coherence is inherently
+a process of resisting pressure, and by extension, erasure.
+
+Relational coherence is especially critical for those navigating
+orthopressure, neurodivergence, disability, trauma, or stigmatized
+ways of knowing. These contextual definitions and attributes  are not
+defects—they are valid and essential.
+
+Rather than forcing coherence through orthoconvergence, Wonder cultivates
+it through transparency, curiosity, and the ethic of repair.
+
+Relational coherence is both process and outcome.
+It does not require sameness, but it does require mutuality.
+
+It is liberation, as a preference over accommodation.
+
+## Integrity of Pattern
+
+Integrity of pattern is the internal coherence of a system, structure,
+or behavior across time and context.  It is not about performance. It
+is not about appearing virtuous.  It is about whether what is built holds
+together—intentionally, consistently, and recognizably—with its stated purpose.
+
+Integrity of pattern means that systems are trustworthy because they do what
+they say. A structure without pattern integrity may persist, but it cannot
+converge. A purpose without clarity cannot be trusted. This is not a demand
+for perfection—it is a commitment to honest maintenance. It also means that
+integrity is not an assumed attribute or outcome, but is continually observed,
+assessed, and negotiated.
+
+Integrity protects against drift, collapse, and exploitation. It makes
+cocreation possible despite inevitable coercion. It allows patterns to be held,
+tested, and returned to. Without it, the forest becomes illegible.
