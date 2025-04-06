@@ -1,63 +1,10 @@
-from pathlib import Path
-from typing import Optional
 import typer
 from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-
+from pathlib import Path
 from .engine import LocalInferenceEngine
 
-app = typer.Typer(help="Wonder Local - Offline inference engine using Mistral-7B")
+app = typer.Typer()
 console = Console()
-
-@app.command()
-def setup(
-    model_id: str = typer.Option(
-        "mistralai/Mistral-7B-v0.1",
-        help="HuggingFace model identifier"
-    ),
-    cache_dir: Optional[Path] = typer.Option(
-        None,
-        help="Directory to cache model files"
-    ),
-    device: str = typer.Option(
-        "auto",
-        help="Device to run inference on (auto, cpu, mps, etc.)"
-    ),
-):
-    """Initialize and test the Wonder local inference engine."""
-    try:
-        console.print("[bold blue]Setting up Wonder local inference engine...[/]")
-        engine = LocalInferenceEngine(
-            model_id=model_id,
-            cache_dir=cache_dir,
-            device_map=device
-        )
-        
-        # Get and display model info
-        info = engine.get_model_info()
-        table = Table(title="Model Information")
-        table.add_column("Property", style="cyan")
-        table.add_column("Value", style="green")
-        
-        for key, value in info.items():
-            table.add_row(key, str(value))
-        
-        console.print(table)
-        
-        # Test generation
-        test_prompt = "What is the purpose of Wonder Framework?"
-        console.print("\n[bold]Testing generation with prompt:[/]")
-        console.print(Panel(test_prompt, title="Prompt"))
-        
-        response = engine.generate(test_prompt, max_new_tokens=100)[0]
-        console.print(Panel(response, title="Response"))
-        
-        console.print("\n[bold green]Setup complete! The engine is ready for use.[/]")
-        
-    except Exception as e:
-        console.print(f"[bold red]Error during setup:[/] {str(e)}")
-        raise typer.Exit(1)
 
 @app.command()
 def load():
@@ -86,5 +33,22 @@ def generate(
         console.print(f"[red]Error: {str(e)}[/red]")
         raise typer.Exit(1)
 
+@app.command()
+def train(
+    data_dir: str = typer.Argument(..., help="Directory containing markdown files for training"),
+    output_dir: str = typer.Option("./fine-tuned", help="Directory to save the fine-tuned model"),
+    epochs: int = typer.Option(3, help="Number of training epochs"),
+    batch_size: int = typer.Option(2, help="Batch size for training"),
+    learning_rate: float = typer.Option(5e-5, help="Learning rate for training"),
+):
+    """Fine-tune the model on text files in a directory recursively."""
+    try:
+        engine = LocalInferenceEngine()
+        engine.load_model()
+        engine.train(data_dir, output_dir, epochs, batch_size, learning_rate)
+    except Exception as e:
+        console.print(f"[red]Error: {str(e)}[/red]")
+        raise typer.Exit(1)
+
 if __name__ == "__main__":
-    app() 
+    app()
