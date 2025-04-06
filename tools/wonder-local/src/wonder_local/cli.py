@@ -41,6 +41,7 @@ def train(
     batch_size: int = typer.Option(2, help="Batch size for training"),
     learning_rate: float = typer.Option(5e-5, help="Learning rate for training"),
 ):
+    console.print("[bold cyan]🧪 CLI train command invoked[/bold cyan]")
     """Fine-tune the model on text files in a directory recursively."""
     try:
         engine = LocalInferenceEngine()

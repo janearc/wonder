@@ -51,18 +51,27 @@ class LocalInferenceEngine:
                     device_map="cpu",
                     low_cpu_mem_usage=True,
                 )
+                self.model.to("mps")
                 
             console.print("[green]Model loaded successfully![/green]")
         except Exception as e:
             console.print(f"[red]Error loading model: {str(e)}[/red]")
             raise
 
-    def train(self, data_dir: str, output_dir: str = "./fine-tuned", epochs: int = 3, batch_size: int = 2, learning_rate: float = 5e-5):
+    def train(self,
+        data_dir: str,
+        output_dir: str = "./fine-tuned",
+        epochs: int = 3,
+        batch_size: int = 1,  # safer default for MPS
+        learning_rate: float = 5e-5,
+    ):
+
+        console.print("[bold green]🧪 engine.train() is live[/bold green]")
+        
         """Fine-tune the model on text files in a directory recursively."""
         if not self.model or not self.tokenizer:
             raise RuntimeError("Model not loaded. Call load_model() first.")
     
-        from pathlib import Path
         data_path = Path(data_dir)
         if not data_path.is_dir():
             raise ValueError(f"{data_dir} is not a valid directory.")
@@ -97,15 +106,21 @@ class LocalInferenceEngine:
             report_to="none"
         )
 
-        # Move model to the correct device (MPS)
-        self.model.to("mps")  # Move the model to the MPS device
-    
+        # prefer mps
+        if torch.backends.mps.is_available():
+            self.model.to("mps")
+            console.print("[green]Model moved to GPU (MPS).[/green]")
+        else:
+            console.print("[yellow]MPS not available, using CPU instead.[/yellow]")
+
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=train_dataset,
             data_collator=data_collator,
         )
+
+        console.print(":satellite: [bold green]Model is on device:[/bold green]", f"[magenta]{next(self.model.parameters()).device}[/magenta]")
     
         console.print("[green]Starting training...[/green]")
         trainer.train()
