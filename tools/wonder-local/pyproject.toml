@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "wonder-local"
+version = "0.1.0"
+description = "Local inference engine for Wonder Framework using Mistral-7B"
+authors = ["jane mf arc <jane.arc@pobox.com>"]
+readme = "README.md"
+packages = [{include = "wonder_local", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+transformers = "^4.37.2"
+torch = "^2.2.0"
+accelerate = "^0.26.1"
+tokenizers = "^0.15.2"
+safetensors = "^0.4.2"
+huggingface-hub = "^0.20.3"
+rich = "^13.7.0"
+typer = "^0.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
+black = "^24.1.1"
+isort = "^5.13.2"
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+wonder-local = "wonder_local.cli:app"
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/nightly"
+priority = "explicit" 
