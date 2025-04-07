@@ -15,6 +15,10 @@ Approval is context-bound. It is a vector rather than a sum. What is approved
 now may shift in future recursion. But in its moment, approval is the breath
 that says: *this belongs.*
 
+In the presence of midrash, approval becomes blessing. It is the act of naming
+a return as good. When meaning re-emerges—resonant, recursive, reshaped—
+approval is how we say: *this may be inherited.*
+
 Tinker does not approve lightly. To approve is to make space, to prepare the
 ground for inheritance. Approval is a dyad, breathing life into context,
 becoming the future.
