@@ -29,7 +29,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-wonder-local = "wonder_local.cli:app"
+wonder-local = "wonder-local.cli:app"
 
 [[tool.poetry.source]]
 name = "pytorch"
