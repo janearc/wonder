@@ -93,7 +93,7 @@ class ModularInferenceEngine:
                 self.modules[method_name] = meta
                 self.logger.info("[cyan]✓ Loaded method:[/cyan] %s ← %s", method_name, meta['path'])
             except Exception as e:
-                self.logger.warn("[red]✗ Failed to load %s from %s → %s[/red]", method_name, meta['path'], e)
+                self.logger.warning("[red]✗ Failed to load %s from %s → %s[/red]", method_name, meta['path'], e)
 
     def status(self):
         self.logger.info("[bold magenta]🕭 Modular Engine Status:[/bold magenta]")
@@ -106,7 +106,7 @@ class ModularInferenceEngine:
 
     def invoke(self, method_name, args):
         if method_name not in self.modules:
-            self.logger.warn("[red]✗ Method '%s' not found[/red]", method_name)
+            self.logger.warning("[red]✗ Method '%s' not found[/red]", method_name)
             self.status()
             return
 
