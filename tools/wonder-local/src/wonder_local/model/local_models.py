@@ -1,14 +1,11 @@
 import os
 from pathlib import Path
-from rich.console import Console
-
-console = Console()
 
 def local_models(self, *args):
     """List Hugging Face models already downloaded to local cache."""
     cache_path = Path.home() / ".cache" / "huggingface" / "hub"
     if not cache_path.exists():
-        console.print("[red]No huggingface cache found.[/red]")
+        self.logger.info("[red]No huggingface cache found.[/red]")
         return
 
     models = set()
@@ -18,9 +15,9 @@ def local_models(self, *args):
             models.add(model_name)
 
     if not models:
-        console.print("[yellow]No local models detected.[/yellow]")
+        self.logger.info("[yellow]No local models detected.[/yellow]")
         return
 
-    console.print("[green]📦 Local Hugging Face models cached:[/green]")
+    self.logger.info("[green]📦 Local Hugging Face models cached:[/green]")
     for name in sorted(models):
-        console.print(f" - {name}")
+        self.logger.info(" - %s", name)

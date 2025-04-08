@@ -9,19 +9,16 @@ def generate(self, *args) -> str:
 
     prompt = " ".join(args)
 
+    """just use the default engine for this"""
+    self.default_engine()
+
     if not self.model or not self.tokenizer:
         raise RuntimeError("Model not loaded. Call load_model() first.")
 
     if not hasattr(self, "estimate"):
         raise RuntimeError("Missing 'estimate' method on engine")
 
-    console.print(f"[dim]Estimating length for prompt: '{prompt}'[/dim]")
-    console.print(f"[dim]self.estimate is: {self.estimate} ({type(self.estimate)})[/dim]")
-    console.print(f"[bold yellow]Calling self.estimate directly...[/bold yellow]")
-    console.print(f"[yellow]About to call self.estimate('test call')[/yellow]")
-    test_output = self.estimate("test call")
-    console.print(f"[yellow]Test output from estimate: {test_output}[/yellow]")
-
+    """try to figure out what the max length of response should be"""
     max_length = self.estimate(prompt)
 
     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
@@ -29,9 +26,9 @@ def generate(self, *args) -> str:
         **inputs,
         max_length=max_length,
         num_return_sequences=1,
-        temperature=0.7,
-        top_p=0.9,
-        top_k=50,
+        temperature=0.3,
+        top_p=0.8,
+        top_k=40,
         do_sample=True,
         pad_token_id=self.tokenizer.eos_token_id,
         repetition_penalty=1.1,

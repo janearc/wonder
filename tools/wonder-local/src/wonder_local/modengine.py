@@ -1,24 +1,64 @@
 import importlib
 import yaml
 import sys
+import torch
+import logging
+from rich.logging import RichHandler
+import os
 from pathlib import Path
 from types import MethodType
 from rich.console import Console
 
+# we only use this outside the engine
 console = Console()
+
 MODULE_CONFIG_PATH = Path(__file__).parent / "modules.yaml"
 
 class ModularInferenceEngine:
-    def __init__(self, model_name: str = "microsoft/phi-2"):
-        self.model_name = model_name
-        self.model = None
-        self.tokenizer = None
-        self.device = "cpu"
+    def __init__(self):
         self.modules = {}
         self._method_config = {}
         self._invoked = set()
-        console.print(f"[bold green]🔧 ModularInferenceEngine is live on device:[/bold green] {self.device}")
+        self.model = None
+        self.tokenizer = None
+        self.model_name = None
+        self.device = None
+
+        """create a general logging facility"""
+        DEBUG_MODE = os.getenv("DEBUG", "false").lower() == "true"
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+        if not logger.handlers:
+            handler = RichHandler(markup=True, rich_tracebacks=True)
+            logger.addHandler(handler)
+
+        self.logger = logger
+
+        """this needs to be the last call in __init__"""
         self._load_modules()
+
+    """create a basic model config for any targets that want it done for them"""
+    def default_engine(self):
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+    
+        self.model_name = "microsoft/phi-2"
+        self.logger.info("[cyan]Loading default model:[/cyan] %s", self.model_name)
+    
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        self.model = AutoModelForCausalLM.from_pretrained(self.model_name)
+    
+        if torch.backends.mps.is_available():
+            self.device = "mps"
+            self.model.to("mps")
+            self.logger.debug("[green]Model moved to GPU (MPS).[/green]")
+        else:
+            self.device = "cpu"
+            self.model.to("cpu")
+            self.logger.debug("[yellow]MPS not available, using CPU instead.[/yellow]")
+    
+        self.logger.info("[bold green]🔧 ModularInferenceEngine is live on device:[/bold green] %s", self.device)
 
     def _load_modules(self):
         if not MODULE_CONFIG_PATH.exists():
@@ -33,8 +73,8 @@ class ModularInferenceEngine:
                 module = importlib.import_module(module_path)
                 func = getattr(module, func_name)
 
-                console.print(f"[blue][DEBUG][/blue] Loading [bold]{method_name}[/bold] — object_method=[bold]{meta.get('object_method', True)}[/bold]")
-                console.print(f"[blue][DEBUG][/blue] Resolved function: [green]{func}[/green]")
+                self.logger.debug("Loading [bold]%s[/bold] — object_method=[bold]%s[/bold]", method_name, meta.get('object_method', True))
+                self.logger.debug("Resolved function: %s", func)
 
                 self._method_config[method_name] = meta
 
@@ -42,31 +82,31 @@ class ModularInferenceEngine:
                     bound_method = MethodType(func, self)
                     setattr(self, method_name, bound_method)
                     bound = getattr(self, method_name)
-                    console.print(f"[bold blue]→ {method_name} is type:[/bold blue] {type(bound)} | callable? {callable(bound)}")
-                    console.print(f"[blue][DEBUG][/blue] Bound [bold]{method_name}[/bold] as object method → [cyan]{getattr(self, method_name)}[/cyan]")
+                    self.logger.debug("→ %s is type: %s | callable? %s", method_name, type(bound), callable(bound))
+                    self.logger.debug("bound %s as object method → %s", method_name, getattr(self, method_name))
                 else:
                     setattr(self, method_name, func)
                     bound = getattr(self, method_name)
-                    console.print(f"[bold blue]→ {method_name} is type:[/bold blue] {type(bound)} | callable? {callable(bound)}")
-                    console.print(f"[blue][DEBUG][/blue] Bound [bold]{method_name}[/bold] as static method → [cyan]{getattr(self, method_name)}[/cyan]")
+                    self.logger.debug("→ %s is type: %s | callable? %s", method_name, type(bound), callable(bound))
+                    self.logger.debug("bound %s as utility method → %s", method_name, getattr(self, method_name))
 
                 self.modules[method_name] = meta
-                console.print(f"[cyan]✓ Loaded method:[/cyan] {method_name} ← {meta['path']}")
+                self.logger.info("[cyan]✓ Loaded method:[/cyan] %s ← %s", method_name, meta['path'])
             except Exception as e:
-                console.print(f"[red]✗ Failed to load {method_name} from {meta['path']} → {e}[/red]")
+                self.logger.warn("[red]✗ Failed to load %s from %s → %s[/red]", method_name, meta['path'], e)
 
     def status(self):
-        console.print("\n[bold magenta]🕭 Modular Engine Status:[/bold magenta]")
-        console.print(f"Model name: [green]{self.model_name}[/green]")
-        console.print("Loaded modules:")
+        self.logger.info("[bold magenta]🕭 Modular Engine Status:[/bold magenta]")
+        self.logger.info("Model name: [green]%s[/green]", self.model_name)
+        self.logger.info("Loaded modules:")
         for name, meta in self.modules.items():
             deps = meta.get("requires", [])
             dep_note = f"(requires: {', '.join(deps)})" if deps else ""
-            console.print(f"  [yellow]{name}[/yellow] ← {meta['path']} {dep_note}")
+            self.logger.info("  %-20s ← %s %s", name, meta["path"], dep_note)
 
     def invoke(self, method_name, args):
         if method_name not in self.modules:
-            console.print(f"[red]✗ Method '{method_name}' not found[/red]")
+            self.logger.warn("[red]✗ Method '%s' not found[/red]", method_name)
             self.status()
             return
 
@@ -76,7 +116,7 @@ class ModularInferenceEngine:
         for dep in self.modules[method_name].get("requires", []):
             if dep in self._invoked:
                 continue
-            console.print(f"[DEBUG] Invoking dependency '{dep}' from '{method_name}'")
+            self.logger.debug("Invoking dependency '%s' from '%s'", dep, method_name)
             # Special case: forward args (like prompt) for estimate
             if dep == "estimate" and args:
                 self.invoke(dep, [args[0]])
@@ -84,7 +124,7 @@ class ModularInferenceEngine:
                 self.invoke(dep, [])
 
         method = getattr(self, method_name)
-        console.print(f"[DEBUG] Invoking method '{method_name}' with args: {args}")
+        self.logger.debug("Invoking method '%s' with args: %s", method_name, args)
         result = method(*args)
         self._invoked.add(method_name)
         return result
