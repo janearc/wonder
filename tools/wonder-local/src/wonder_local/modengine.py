@@ -14,16 +14,21 @@ console = Console()
 
 class ModularInferenceEngine:
     def __init__(self):
-        self.modules = {}
-        self._method_config = {}
-        self._invoked = set()
+        # Internal registries and state
+        self.modules = {}  # Stores method bindings
+        self._method_config = {}  # Metadata about each method
+        self._invoked = set()  # Track which methods have been called
+
+        # Model-related attributes
         self.model = None
         self.tokenizer = None
         self.model_name = None
         self.device = None
+
+        # Load module configuration from YAML
         self.config = MODULE_CONFIG
 
-        """create a general logging facility"""
+        # Setup logging
         DEBUG_MODE = os.getenv("DEBUG", "false").lower() == "true"
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
@@ -38,9 +43,11 @@ class ModularInferenceEngine:
 
         self.logger = logger
 
+        # Load all configured modules
         self._load_modules()
 
     def _load_modules(self):
+        # Iterate through each module entry in the config
         for name, meta in MODULE_CONFIG.items():
             path = meta["path"]
             object_method = meta.get("object_method", True)
@@ -50,6 +57,8 @@ class ModularInferenceEngine:
             try:
                 module = importlib.import_module(module_path)
                 func = getattr(module, func_name)
+
+                # Bind method if it's an instance method
                 bound = func.__get__(self) if object_method else func
 
                 self.modules[name] = bound
@@ -66,6 +75,7 @@ class ModularInferenceEngine:
                 self.logger.error("Failed to load method %s from %s: %s", name, path, e)
 
     def status(self):
+        # Print the current engine status
         self.logger.info(
             "[bold magenta]\U0001F56D Modular Engine Status:[/bold magenta]"
         )
@@ -77,6 +87,7 @@ class ModularInferenceEngine:
             self.logger.info("  %-20s \u2190 %s %s", name, config["path"], dep_note)
 
     def invoke(self, method_name, *args):
+        # Invoke a registered method with optional arguments
         if method_name not in self.modules:
             self.logger.warning("[red]\u2717 Method '%s' not found[/red]", method_name)
             self.status()
@@ -101,7 +112,5 @@ if __name__ == "__main__":
         result = engine.invoke(method, *args)
         if result is not None:
             print(result)
-    except Exception as e:
-        engine.logger.exception(
-            f"\u2717 Error during '{method}': {e}", style="bold red"
-        )
+    except Exception:
+        engine.logger.exception(f"\u2717 Error during '{method}'")
