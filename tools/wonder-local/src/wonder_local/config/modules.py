@@ -1,5 +1,6 @@
-import yaml
 from pathlib import Path
+
+import yaml
 
 module_yaml = Path(__file__).with_name("modules.yaml")
 

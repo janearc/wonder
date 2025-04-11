@@ -1,25 +1,35 @@
-from rich.console import Console
 import torch
+from rich.console import Console
 
+# Create a console object for optional future logging/output
 console = Console()
 
 def generate(self, *args) -> str:
+    # Ensure a prompt was passed
     if not args:
         raise ValueError("Prompt required for generation.")
 
+    # Combine all positional arguments into a single prompt string
     prompt = " ".join(args)
 
-    default_model = self.config.get("load_model", {}).get("default_model", "microsoft/phi-2")
+    # Use configured default model name if none explicitly provided
+    default_model = self.config.get("load_model", {}).get(
+        "default_model", "microsoft/phi-2"
+    )
+
+    # Ensure the model and tokenizer are loaded and ready
     self.model = self.invoke("load_model", default_model)
 
     if not self.model or not self.tokenizer:
         raise RuntimeError("Model not loaded. Call load_model() first.")
 
-    """try to figure out what the max length of response should be"""
+    # Dynamically estimate the ideal max length for the response
     max_length = self.invoke("estimate", prompt)
 
+    # Tokenize input and move to correct device
     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
+    # Generate a response using sampling with top-p and top-k constraints
     outputs = self.model.generate(
         **inputs,
         max_length=max_length,
@@ -33,5 +43,6 @@ def generate(self, *args) -> str:
         no_repeat_ngram_size=3,
         use_cache=True,
     )
-    return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
+    # Decode the output into a clean string and return
+    return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
