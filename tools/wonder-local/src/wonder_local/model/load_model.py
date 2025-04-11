@@ -1,14 +1,24 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
 import os
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 from pathlib import Path
+
+import torch
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 
 def load_model(self, model_path=None):
     self.logger.info("[cyan]Loading model...[/cyan]")
 
     # Read default model name or path from config
-    default_model = self.config.get("load_model", {}).get("default_model", "microsoft/phi-2")
+    default_model = self.config.get("load_model", {}).get(
+        "default_model", "microsoft/phi-2"
+    )
     default_model_path = Path(default_model)
     cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
 
@@ -31,18 +41,26 @@ def load_model(self, model_path=None):
         progress.add_task(description="Loading tokenizer...", total=None)
         try:
             if model_path_obj.exists():
-                tokenizer = AutoTokenizer.from_pretrained(model_path_obj, local_files_only=True)
+                tokenizer = AutoTokenizer.from_pretrained(
+                    model_path_obj, local_files_only=True
+                )
             else:
-                tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=False)
+                tokenizer = AutoTokenizer.from_pretrained(
+                    self.model_name, local_files_only=False
+                )
         except Exception as e:
             raise RuntimeError(f"Failed to load tokenizer from {self.model_name}: {e}")
 
         progress.add_task(description="Loading model...", total=None)
         try:
             if model_path_obj.exists():
-                model = AutoModelForCausalLM.from_pretrained(model_path_obj, local_files_only=True)
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_path_obj, local_files_only=True
+                )
             else:
-                model = AutoModelForCausalLM.from_pretrained(self.model_name, local_files_only=False)
+                model = AutoModelForCausalLM.from_pretrained(
+                    self.model_name, local_files_only=False
+                )
         except Exception as e:
             raise RuntimeError(f"Failed to load model from {self.model_name}: {e}")
 
@@ -59,5 +77,7 @@ def load_model(self, model_path=None):
     self.tokenizer = tokenizer
     self.device = device
 
-    self.logger.info(f"[bold green]\U0001F527 Model loaded successfully on device: {self.device}[/bold green]")
+    self.logger.info(
+        f"[bold green]\U0001F527 Model loaded successfully on device: {self.device}[/bold green]"
+    )
     return model

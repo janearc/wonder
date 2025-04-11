@@ -1,22 +1,21 @@
 # src/wonder-local/model/train.py
 
+import os
 from pathlib import Path
+
 import torch
-from transformers import (
-    Trainer,
-    TrainingArguments,
-    DataCollatorForLanguageModeling,
-)
 from datasets import Dataset
 from rich.console import Console
+from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 
-import os
 default_data_dir = os.path.join(os.environ.get("WONDER_ROOT", "."), "sigil")
 
 console = Console()
 
-def train(self,
-		model_id: str = "meta-llama/Meta-Llama-3-8B-Instruct",
+
+def train(
+    self,
+    model_id: str = "meta-llama/Meta-Llama-3-8B-Instruct",
     data_dir: str = default_data_dir,
     output_dir: str = "./fine-tuned",
     epochs: int = 3,
@@ -45,8 +44,12 @@ def train(self,
     if not texts:
         raise ValueError("No markdown files found in the directory for training.")
 
-    console.print(f"[green]Collected {len(texts)} markdown files. Tokenizing training data...[/green]")
-    encodings = self.tokenizer(texts, truncation=True, padding=True, return_tensors="pt")
+    console.print(
+        f"[green]Collected {len(texts)} markdown files. Tokenizing training data...[/green]"
+    )
+    encodings = self.tokenizer(
+        texts, truncation=True, padding=True, return_tensors="pt"
+    )
     train_dataset = Dataset.from_dict(encodings)
 
     data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
@@ -60,7 +63,7 @@ def train(self,
         save_steps=500,
         save_total_limit=2,
         logging_steps=100,
-        report_to="none"
+        report_to="none",
     )
 
     if torch.backends.mps.is_available():
@@ -77,7 +80,10 @@ def train(self,
         data_collator=data_collator,
     )
 
-    console.print(":satellite: [bold green]Model is on device:[/bold green]", f"[magenta]{next(self.model.parameters()).device}[/magenta]")
+    console.print(
+        ":satellite: [bold green]Model is on device:[/bold green]",
+        f"[magenta]{next(self.model.parameters()).device}[/magenta]",
+    )
 
     console.print("[green]Starting training...[/green]")
     trainer.train()

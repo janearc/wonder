@@ -1,13 +1,16 @@
-import os
-import sys
 import importlib
 import inspect
 import logging
-from rich.logging import RichHandler
+import os
+import sys
+import traceback
+
 from rich.console import Console
+from rich.logging import RichHandler
 from wonder_local.config.modules import MODULE_CONFIG
 
 console = Console()
+
 
 class ModularInferenceEngine:
     def __init__(self):
@@ -28,7 +31,9 @@ class ModularInferenceEngine:
             handler = RichHandler(markup=True, rich_tracebacks=True)
             handler.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
             logger.debug(f"DEBUG_MODE is {DEBUG_MODE}")
-            logger.debug(f"Logger level: {logger.level}, Handler level: {handler.level}")
+            logger.debug(
+                f"Logger level: {logger.level}, Handler level: {handler.level}"
+            )
             logger.addHandler(handler)
 
         self.logger = logger
@@ -52,7 +57,7 @@ class ModularInferenceEngine:
                     "path": path,
                     "object_method": object_method,
                     "llamalike": llamalike,
-                    "requires": meta.get("requires", [])
+                    "requires": meta.get("requires", []),
                 }
 
                 self.logger.info("\u2713 Loaded method: %s \u2190 %s", name, path)
@@ -61,7 +66,9 @@ class ModularInferenceEngine:
                 self.logger.error("Failed to load method %s from %s: %s", name, path, e)
 
     def status(self):
-        self.logger.info("[bold magenta]\U0001F56D Modular Engine Status:[/bold magenta]")
+        self.logger.info(
+            "[bold magenta]\U0001F56D Modular Engine Status:[/bold magenta]"
+        )
         self.logger.info("Model name: [green]%s[/green]", self.model_name)
         self.logger.info("Loaded modules:")
         for name, config in self._method_config.items():
@@ -80,6 +87,7 @@ class ModularInferenceEngine:
         self._invoked.add(method_name)
         return result
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python modengine.py <method> [args...]")
@@ -94,4 +102,6 @@ if __name__ == "__main__":
         if result is not None:
             print(result)
     except Exception as e:
-        console.print(f"\u2717 Error during '{method}': {e}", style="bold red")
+        engine.logger.exception(
+            f"\u2717 Error during '{method}': {e}", style="bold red"
+        )

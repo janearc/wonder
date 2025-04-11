@@ -16,7 +16,9 @@ def local_models(self, *args):
         try:
             idx = parts.index("models--")
         except ValueError:
-            idx = next((i for i, part in enumerate(parts) if part.startswith("models--")), None)
+            idx = next(
+                (i for i, part in enumerate(parts) if part.startswith("models--")), None
+            )
         if idx is not None and idx + 1 < len(parts):
             model_parts = parts[idx].replace("models--", "")
             model_name = model_parts.replace("--", "/")
@@ -29,4 +31,3 @@ def local_models(self, *args):
     self.logger.info("[green]📦 Local Hugging Face models with config.json:[/green]")
     for name in sorted(models):
         self.logger.info(" - %s", name)
-

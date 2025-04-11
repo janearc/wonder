@@ -1,7 +1,8 @@
-from rich.console import Console
 import torch
+from rich.console import Console
 
 console = Console()
+
 
 def generate(self, *args) -> str:
     if not args:
@@ -9,7 +10,9 @@ def generate(self, *args) -> str:
 
     prompt = " ".join(args)
 
-    default_model = self.config.get("load_model", {}).get("default_model", "microsoft/phi-2")
+    default_model = self.config.get("load_model", {}).get(
+        "default_model", "microsoft/phi-2"
+    )
     self.model = self.invoke("load_model", default_model)
 
     if not self.model or not self.tokenizer:
@@ -34,4 +37,3 @@ def generate(self, *args) -> str:
         use_cache=True,
     )
     return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-

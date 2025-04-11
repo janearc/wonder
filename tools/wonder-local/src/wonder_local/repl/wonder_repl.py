@@ -1,9 +1,11 @@
 import readline
-import yaml
 from datetime import datetime
+
+import yaml
 from rich.console import Console
 
 console = Console()
+
 
 def wonder_repl(self):
     """Start a Wonder REPL session."""
@@ -14,7 +16,9 @@ def wonder_repl(self):
     console.print("\n[bold green]🌀 wonder-local shell[/bold green]")
     console.print(f"[dim]Model:[/dim] [cyan]{self.model_name}[/cyan]")
     console.print(f"[dim]Session:[/dim] [magenta]{date_stamp}[/magenta]\n")
-    console.print("[italic]To open a session is to invite emergence. To care.[/italic]\n")
+    console.print(
+        "[italic]To open a session is to invite emergence. To care.[/italic]\n"
+    )
 
     if not self.model or not self.tokenizer:
         raise RuntimeError("Model not loaded. Call load_model() first.")
@@ -41,19 +45,18 @@ def wonder_repl(self):
                 "prompt": prompt,
                 "response": response,
                 "approved": True,
-                "tags": []
+                "tags": [],
             }
         else:
-            rejection_type = input("Rejection type (e.g., tone, ethic, decoherence): ").strip()
+            rejection_type = input(
+                "Rejection type (e.g., tone, ethic, decoherence): "
+            ).strip()
             note = input("Note on rejection: ").strip()
             entry = {
                 "prompt": prompt,
                 "response": response,
                 "approved": False,
-                "rejection": {
-                    "type": rejection_type,
-                    "note": note
-                }
+                "rejection": {"type": rejection_type, "note": note},
             }
 
         session_log.append(entry)
@@ -65,7 +68,7 @@ def wonder_repl(self):
             "model": self.model_name,
             "approved": sum(1 for e in session_log if e.get("approved")),
             "rejected": sum(1 for e in session_log if not e.get("approved")),
-            "entries": session_log
+            "entries": session_log,
         }
     }
 
