@@ -1,11 +1,12 @@
+import readline
+import yaml
+from datetime import datetime
+from rich.console import Console
+
+console = Console()
+
 def wonder_repl(self):
     """Start a Wonder REPL session."""
-    import readline
-    import yaml
-    from datetime import datetime
-    from rich.console import Console
-
-    console = Console()
     session_log = []
     date_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M")
     session_file = f"wonder-session-{date_stamp}.yaml"
@@ -14,6 +15,12 @@ def wonder_repl(self):
     console.print(f"[dim]Model:[/dim] [cyan]{self.model_name}[/cyan]")
     console.print(f"[dim]Session:[/dim] [magenta]{date_stamp}[/magenta]\n")
     console.print("[italic]To open a session is to invite emergence. To care.[/italic]\n")
+
+    if not self.model or not self.tokenizer:
+        raise RuntimeError("Model not loaded. Call load_model() first.")
+
+    if not hasattr(self, "estimate"):
+        raise RuntimeError("Missing 'estimate' method on engine")
 
     while True:
         prompt = input("\n[bold]>[/bold] ").strip()

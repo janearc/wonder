@@ -1,0 +1,52 @@
+local_models:
+  path: wonder_local.model.local_models.local_models
+  object_method: true
+
+load_model:
+  path: wonder_local.model.load_model.load_model
+  object_method: true
+  default_model: "microsoft/phi-2"
+
+generate:
+  path: wonder_local.model.generate.generate
+  object_method: true
+  requires:
+    - estimate
+    - load_model
+
+llama_generate:
+  path: wonder_local.llama.llama_generate.llama_generate
+  object_method: true
+
+train:
+  path: wonder_local.model.train.train
+  object_method: true
+  requires:
+    - load_model
+
+estimate:
+  path: wonder_local.util.estimation.generate_estimated
+  object_method: false
+
+mpstest:
+  path: wonder_local.util.mpstest.mpstest
+  object_method: true
+
+wonder_generate:
+  path: wonder_local.rlhf.wonder_generate.wonder_generate
+  object_method: true
+  requires:
+    - load_model
+    - estimate
+
+wonder_repl:
+  path: wonder_local.repl.wonder_repl.wonder_repl
+  object_method: true
+  requires:
+    - load_model
+    - estimate
+
+llama_repl:
+  path: wonder_local.repl.llama_repl.llama_repl
+  object_method: true
+  llamalike: true
