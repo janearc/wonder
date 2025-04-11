@@ -32,9 +32,6 @@ mypy = "^1.8.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-wonder-local = "wonder-local.cli:app"
-
 [[tool.poetry.source]]
 name = "pytorch"
 url = "https://download.pytorch.org/whl/nightly"
