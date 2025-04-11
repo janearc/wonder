@@ -1,105 +1,96 @@
 # Wonder Local
 
-Local inference engine for Wonder Framework using Mistral-7B. This tool enables offline access to Wonder's capabilities by running a local language model.
+This directory contains tools for running/training Wonder locally (vs against a remote model). Attempts to run on mps if available and will fall back to cpu. This is where local wonder-repls will live when they are built.
 
 ## Features
 
-- Local inference using Mistral-7B (no internet required after setup)
-- 4-bit quantization for efficient memory usage
-- Simple CLI interface for setup and generation
-- Compatible with Apple Silicon (M-series) processors
-- Future support for fine-tuning on Wonder sigils
+- Dynamic method dispatch via `modengine.py`
+- Auto-discovery of local models in Hugging Face cache
+- Optional fine-tuning with structured Markdown inputs
+- Modular method loading from `modules.yaml`
+- Apple MPS support for running on Mac GPU
+- Integrated training, generation, estimation, and REPL modes
 
 ## Requirements
 
-- Python 3.9 or higher
-- Poetry for dependency management
-- 16GB+ RAM recommended (48GB ideal)
-- Apple Silicon Mac (M1/M2/M3) or compatible hardware
+- Python 3.10+
+- Poetry for environment management
 
 ## Installation
 
-1. Clone the Wonder repository
-2. Navigate to the wonder-local directory:
-   ```bash
-   cd tools/wonder-local
-   ```
-3. Install dependencies using Poetry:
-   ```bash
-   poetry install
-   ```
+```bash
+cd tools/wonder-local
+poetry install
+```
 
 ## Usage
 
-### Initial Setup
-
-Before first use, you need to download and set up the model:
+All entrypoints are handled via `modengine.py` and routed dynamically through the modular engine:
 
 ```bash
-wonder-local setup
+poetry run python src/wonder_local/modengine.py <method> [args...]
 ```
 
-This will:
-- Download the Mistral-7B model (if not cached)
-- Configure the model for your hardware
-- Run a test generation to verify everything works
-
-You can customize the setup with options:
-```bash
-wonder-local setup --help
-```
-
-### Text Generation
-
-Generate text using the model:
+### Example: Local Model Discovery
 
 ```bash
-wonder-local generate "Tell me about the ethic of care in Wonder Framework"
+poetry run python src/wonder_local/modengine.py local_models
 ```
 
-Options for generation:
+### Example: Text Generation
+
 ```bash
-wonder-local generate --help
+poetry run python src/wonder_local/modengine.py generate "What is Wonder Framework?"
 ```
 
-Common options:
-- `--max-tokens`: Control response length
-- `--temperature`: Control randomness (0.0-1.0)
-- `--model-id`: Use a different model
+### Example: Fine-tune a model on sigils
+
+```bash
+poetry run python src/wonder_local/modengine.py train ~/wonder/sigil
+```
+
+## Configuration
+
+Modules are configured in `modules.yaml`. Each method declares its path, whether it's an object method, and any required dependencies:
+
+```yaml
+train:
+  path: wonder_local.model.train.train
+  object_method: true
+  requires:
+    - load_model
+```
+
+Default model paths or IDs (like `microsoft/phi-2`) can also be specified there:
+
+```yaml
+load_model:
+  path: wonder_local.model.load_model.load_model
+  object_method: true
+  default_model: microsoft/phi-2
+```
 
 ## Development
 
-The package uses Poetry for dependency management. To set up for development:
+Format, type-check, and test like a pro:
 
-```bash
-poetry install --with dev
-```
-
-Run tests:
-```bash
-poetry run pytest
-```
-
-Format code:
 ```bash
 poetry run black .
 poetry run isort .
-```
-
-Type checking:
-```bash
 poetry run mypy .
+poetry run pytest
 ```
 
-## Future Plans
+## Notes
 
-- [ ] Fine-tuning on Wonder sigils
-- [ ] Chat interface similar to ChatGPT
-- [ ] Context management for sigils
-- [ ] Integration with Wonder CLI
-- [ ] Support for different model architectures
-- [ ] Training pipeline for custom models
+- All model loading assumes safetensors format unless stated otherwise
+- If `DEBUG=true` is in your environment, you'll get rich logging with tracebacks
+- REPLs, LLaMA-specific extensions, and alignment tooling are also supported
 
 ## License
 
-Same as Wonder Framework 
+Same as Wonder Framework
+
+---
+
+Made with love, YAML, and just a little MPS magic 🚀
