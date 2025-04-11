@@ -9,19 +9,17 @@ def generate(self, *args) -> str:
 
     prompt = " ".join(args)
 
-    """just use the default engine for this"""
-    self.default_engine()
+    default_model = self.config.get("load_model", {}).get("default_model", "microsoft/phi-2")
+    self.model = self.invoke("load_model", default_model)
 
     if not self.model or not self.tokenizer:
         raise RuntimeError("Model not loaded. Call load_model() first.")
 
-    if not hasattr(self, "estimate"):
-        raise RuntimeError("Missing 'estimate' method on engine")
-
     """try to figure out what the max length of response should be"""
-    max_length = self.estimate(prompt)
+    max_length = self.invoke("estimate", prompt)
 
     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
     outputs = self.model.generate(
         **inputs,
         max_length=max_length,
@@ -36,3 +34,4 @@ def generate(self, *args) -> str:
         use_cache=True,
     )
     return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+

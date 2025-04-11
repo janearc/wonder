@@ -10,10 +10,14 @@ from transformers import (
 from datasets import Dataset
 from rich.console import Console
 
+import os
+default_data_dir = os.path.join(os.environ.get("WONDER_ROOT", "."), "sigil")
+
 console = Console()
 
 def train(self,
-    data_dir: str,
+		model_id: str = "meta-llama/Meta-Llama-3-8B-Instruct",
+    data_dir: str = default_data_dir,
     output_dir: str = "./fine-tuned",
     epochs: int = 3,
     batch_size: int = 1,  # safer default for MPS

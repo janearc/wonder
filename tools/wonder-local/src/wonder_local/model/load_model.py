@@ -7,21 +7,17 @@ from pathlib import Path
 def load_model(self, model_path=None):
     self.logger.info("[cyan]Loading model...[/cyan]")
 
-    default_local_model = Path("./fine-tuned.o")
+    # Read default model name or path from config
+    default_model = self.config.get("load_model", {}).get("default_model", "microsoft/phi-2")
+    default_model_path = Path(default_model)
     cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
 
     if model_path:
         self.model_name = model_path
-    elif default_local_model.exists():
-        self.model_name = str(default_local_model)
+    elif default_model_path.exists():
+        self.model_name = str(default_model_path)
     else:
-        # Attempt to find any model directory in the cache as a fallback
-        candidates = list(cache_dir.glob("models--*/*"))
-        if candidates:
-            self.model_name = str(candidates[0])
-            self.logger.info(f"[yellow]Using cached model: {self.model_name}[/yellow]")
-        else:
-            raise ValueError("No model path provided and no local/cached model found.")
+        self.model_name = default_model  # treat as model ID if not a path
 
     model_path_obj = Path(self.model_name)
 
@@ -33,25 +29,35 @@ def load_model(self, model_path=None):
         transient=True,
     ) as progress:
         progress.add_task(description="Loading tokenizer...", total=None)
-        if model_path_obj.exists():
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path_obj, local_files_only=True)
-        else:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
+        try:
+            if model_path_obj.exists():
+                tokenizer = AutoTokenizer.from_pretrained(model_path_obj, local_files_only=True)
+            else:
+                tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=False)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load tokenizer from {self.model_name}: {e}")
 
         progress.add_task(description="Loading model...", total=None)
-        if model_path_obj.exists():
-            self.model = AutoModelForCausalLM.from_pretrained(model_path_obj, local_files_only=True)
-        else:
-            self.model = AutoModelForCausalLM.from_pretrained(self.model_name, local_files_only=True)
+        try:
+            if model_path_obj.exists():
+                model = AutoModelForCausalLM.from_pretrained(model_path_obj, local_files_only=True)
+            else:
+                model = AutoModelForCausalLM.from_pretrained(self.model_name, local_files_only=False)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load model from {self.model_name}: {e}")
 
     if torch.backends.mps.is_available():
-        self.device = "mps"
-        self.model.to("mps")
+        device = "mps"
+        model.to("mps")
         self.logger.info("[green]Model moved to GPU (MPS).[/green]")
     else:
-        self.device = "cpu"
-        self.model.to("cpu")
+        device = "cpu"
+        model.to("cpu")
         self.logger.warning("[yellow]MPS not available, using CPU instead.[/yellow]")
 
-    self.logger.info(f"[bold green]\U0001F527 Model loaded successfully on device: {self.device}[/bold green]")
+    self.model = model
+    self.tokenizer = tokenizer
+    self.device = device
 
+    self.logger.info(f"[bold green]\U0001F527 Model loaded successfully on device: {self.device}[/bold green]")
+    return model
