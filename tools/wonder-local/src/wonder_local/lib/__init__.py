@@ -5,6 +5,8 @@ from .token_stats import TokenStats
 from .markdown_xml import markdown_to_xml
 from .benchmark import Benchmark
 
+from .pretraining import QuestionEntry, QuestionSet
+
 __all__ = [
     "extract_title_and_content",
     "extract_relationships",
@@ -12,4 +14,7 @@ __all__ = [
     "TokenStats",
     "markdown_to_xml",
     "Benchmark",
+    "QuestionEntry",
+    "QuestionSet",
 ]
+
