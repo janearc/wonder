@@ -23,3 +23,11 @@ class QuestionSet(BaseModel):
             ))
         return cls(context=context, questions=question_entries)
 
+    @property
+    def question_count(self) -> int:
+        return len(self.questions)
+
+    @property
+    def answer_count(self) -> int:
+        return sum(len(q.answers) for q in self.questions)
+

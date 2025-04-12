@@ -9,10 +9,13 @@ from wonder_local.lib.markdown_xml import markdown_to_xml
 from wonder_local.lib.benchmark import Benchmark
 from wonder_local.lib.pretraining import QuestionSet, QuestionEntry
 
-
 def md_to_questions(self, file_path: str):
-    with open(file_path, "r") as f:
-        md = f.read()
+    try:
+        with open(file_path, "r") as f:
+            md = f.read()
+    except Exception as e:
+        self.logger.error(f"❌ Failed to read file '{file_path}': {e}")
+        return
 
     root = markdown_to_xml(md)
     paragraphs = [elem.text for elem in root.findall("p") if elem.text]
@@ -28,10 +31,14 @@ def md_to_questions(self, file_path: str):
         self.logger.warning(f"⚠️ Skipping file '{file_path}': context too long ({input_length} > {max_input_length})")
         return
 
+    # TODO: be more flexible about this in the future, but flan is nice enough for now.
     model_name = "google/flan-t5-large"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
+    # we're using this prompt for flan to derive questions from the provided context
+    # which can then be subsequently answered by flan, and used in training other models
+    # through the use of outputted normalized json question/answer/synthesis objects
     question_prompt = (
         "Identify three distinct concepts discussed in the following paragraph. "
         "For each concept, generate one instruct-style question that would help a model understand "
@@ -44,8 +51,17 @@ def md_to_questions(self, file_path: str):
 
     unique_questions = set()
     question_attempts = 0
+
+    # we are going to ask the model to generate questions for us (prompt above) until
+    # we don't get any new questions. this allows it to process the context a sufficient
+    # number of times that nuance in meaning can emerge rather than just saying "what is this?"
     while True:
         inputs = tokenizer(question_prompt, return_tensors="pt")
+
+        # these variables were arrived at through trial and error and seem to work
+        # well enough for flan, but probably won't work well for other models. they
+        # may need to be modified if we move away from flan or the model seems
+        # too lazy or too spicy.
         outputs = model.generate(
             **inputs,
             max_length=input_length,
@@ -57,7 +73,14 @@ def md_to_questions(self, file_path: str):
         )
         questions_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
         raw_questions = re.split(r"[Qq]?>", questions_text)
-        parsed_questions = [re.sub(r"^\s*\d+\.?\s*", "", q).strip() for q in raw_questions if q.strip()]
+
+        # find legitimate questions and toss the ones that are bogus
+        parsed_questions = [
+            re.sub(r"^\s*\d+\.?\s*", "", q).strip()
+            for q in raw_questions
+            if q.strip() and q.strip().endswith("?")
+        ]
+
         prev_len = len(unique_questions)
         unique_questions.update(parsed_questions)
         question_attempts += 1
@@ -70,8 +93,16 @@ def md_to_questions(self, file_path: str):
         sub_prompt = f"{question} Answer based only on this context:\n\n{context}"
         answer_set = set()
         answer_attempts = 0
+
+        # generate a set of answers for each question we have derived from the
+        # original context provided
         while True:
             input_ids = tokenizer(sub_prompt, return_tensors="pt")
+
+            # these variables were arrived at through trial and error and seem to work
+            # well enough for flan, but probably won't work well for other models. they
+            # may need to be modified if we move away from flan or the model seems
+            # too lazy or too spicy.
             output = model.generate(
                 **input_ids,
                 max_length=384,
@@ -88,6 +119,7 @@ def md_to_questions(self, file_path: str):
             answer_attempts += 1
             if len(answer_set) == prev_len or answer_attempts >= 5:
                 break
+
         answers[question] = list(answer_set)
 
     benchmark.output_tokens = total_output_tokens
@@ -102,22 +134,30 @@ def md_to_questions(self, file_path: str):
     sigil_name = Path(file_path).stem
     out_path = Path("data/rlhf/sigil/instruction")
     out_path.mkdir(parents=True, exist_ok=True)
-    with open(out_path / f"{sigil_name}-review.json", "w") as f:
-        json.dump(question_set.model_dump(), f, indent=2)
+    try:
+        with open(out_path / f"{sigil_name}-review.json", "w") as f:
+            json.dump(question_set.model_dump(), f, indent=2)
+    except Exception as e:
+        self.logger.error(f"❌ Failed to write file '{sigil_name}-review.json': {e}")
+        return
 
     self.logger.info("\n[📚] QA Extraction Complete")
     self.logger.info("\n[❓] Questions and Answers:")
     for q, a_list in answers.items():
-        self.logger.info(f"\nQ: {q}")
+        self.logger.debug(f"\nQ: {q}")
         for a in a_list:
-            self.logger.info(f" - {a}")
+            self.logger.debug(f" - {a}")
 
     benchmark.report()
+
+    num_qs = question_set.question_count
+    num_as = question_set.answer_count
+    self.logger.info(f"\n[❓] Generated {num_qs} answers with {num_as} answers for approval.")
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        self.logger.warning("Usage: python modengine.py md_to_questions <markdown_file>")
+        print("Usage: python modengine.py md_to_questions <markdown_file>")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -126,6 +166,5 @@ if __name__ == "__main__":
     if command == "md_to_questions":
         md_to_questions(path)
     else:
-        self.logger.warning(f"Unknown command: {command}")
+        print(f"Unknown command: {command}")
         sys.exit(1)
-
