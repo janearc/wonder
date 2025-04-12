@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import spacy
-import textacy
 
 nlp = spacy.load("en_core_web_sm")
 

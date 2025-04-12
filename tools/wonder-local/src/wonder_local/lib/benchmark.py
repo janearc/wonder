@@ -1,8 +1,6 @@
 import time
-from contextlib import contextmanager
 
 import psutil
-
 
 class Benchmark:
     def __init__(
