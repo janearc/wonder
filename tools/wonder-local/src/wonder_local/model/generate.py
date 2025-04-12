@@ -1,8 +1,4 @@
 import torch
-from rich.console import Console
-
-# Create a console object for optional future logging/output
-console = Console()
 
 def generate(self, *args) -> str:
     # Ensure a prompt was passed
