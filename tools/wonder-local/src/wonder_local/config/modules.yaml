@@ -2,6 +2,10 @@ local_models:
   path: wonder_local.model.local_models.local_models
   object_method: true
 
+hf_get:
+  path: wonder_local.util.hf_get.hf_get
+  object_method: true
+
 load_model:
   path: wonder_local.model.load_model.load_model
   object_method: true
@@ -23,6 +27,7 @@ train:
   object_method: true
   requires:
     - load_model
+  default_model: "meta-llama/Meta-Llama-3-8B-Instruct"
 
 estimate:
   path: wonder_local.util.estimation.generate_estimated
