@@ -5,6 +5,7 @@ from .markdown_xml import markdown_to_xml
 from .parse_concepts import parse_concepts_from_markdown
 from .pretraining import QuestionEntry, QuestionSet
 from .token_stats import TokenStats
+from .profiling import list_sigil_files, corpora_ingest
 
 __all__ = [
     "extract_title_and_content",
@@ -15,4 +16,5 @@ __all__ = [
     "Benchmark",
     "QuestionEntry",
     "QuestionSet",
+    "list_sigil_files"
 ]
