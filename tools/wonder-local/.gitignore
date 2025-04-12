@@ -8,3 +8,6 @@ fine-tuned.o/*
 !fine-tuned.o/.preserve
 !fine-tuned.o/README.md
 !fine-tuned.o/metadata.yaml
+
+# i put random test things in here
+holding/*
