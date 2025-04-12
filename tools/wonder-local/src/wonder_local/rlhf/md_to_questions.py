@@ -2,9 +2,12 @@ import sys
 import torch
 import xml.etree.ElementTree as ET
 import re
+import json
+from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from wonder_local.lib.markdown_xml import markdown_to_xml
 from wonder_local.lib.benchmark import Benchmark
+from wonder_local.lib.pretraining import QuestionSet, QuestionEntry
 
 
 def md_to_questions(self, file_path: str):
@@ -17,7 +20,9 @@ def md_to_questions(self, file_path: str):
 
     # Dynamically estimate the ideal max length for the response
     input_length = self.invoke("estimate", context)
-    max_input_length = 512  # for flan-t5-large
+
+    # this is a hard limit in flan, we'll probably do this more gracefully in the future
+    max_input_length = 512
 
     if input_length > max_input_length:
         self.logger.warning(f"⚠️ Skipping file '{file_path}': context too long ({input_length} > {max_input_length})")
@@ -88,19 +93,31 @@ def md_to_questions(self, file_path: str):
     benchmark.output_tokens = total_output_tokens
     benchmark.stop()
 
-    print("\n[📚] QA Extraction Complete")
-    print("\n[❓] Questions and Answers:")
+    question_entries = [
+        QuestionEntry(question=q, answers=a, approved=False)
+        for q, a in answers.items()
+    ]
+    question_set = QuestionSet(context=context, questions=question_entries)
+
+    sigil_name = Path(file_path).stem
+    out_path = Path("data/rlhf/sigil/instruction")
+    out_path.mkdir(parents=True, exist_ok=True)
+    with open(out_path / f"{sigil_name}-review.json", "w") as f:
+        json.dump(question_set.model_dump(), f, indent=2)
+
+    self.logger.info("\n[📚] QA Extraction Complete")
+    self.logger.info("\n[❓] Questions and Answers:")
     for q, a_list in answers.items():
-        print(f"\nQ: {q}")
+        self.logger.info(f"\nQ: {q}")
         for a in a_list:
-            print(f" - {a}")
+            self.logger.info(f" - {a}")
 
     benchmark.report()
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: python modengine.py md_to_questions <markdown_file>")
+        self.logger.warning("Usage: python modengine.py md_to_questions <markdown_file>")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -109,5 +126,6 @@ if __name__ == "__main__":
     if command == "md_to_questions":
         md_to_questions(path)
     else:
-        print(f"Unknown command: {command}")
+        self.logger.warning(f"Unknown command: {command}")
         sys.exit(1)
+
