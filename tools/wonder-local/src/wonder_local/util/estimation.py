@@ -3,6 +3,7 @@ from transformers import pipeline
 
 console = Console()
 
+
 def generate_estimated(prompt: str) -> int:
     """Estimate an appropriate max_length using a small model."""
     console.print("[blue]Estimating response size using distilgpt2...[/blue]")

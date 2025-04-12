@@ -4,7 +4,14 @@ fine-tuned/*
 # hands off my models, bro
 fine-tuned.o/*
 
+# keep the data directory structure, but don't track the training data
+!data/**/.preserve
+data/**/*.json
+
 # But keep these files so the directory persists
 !fine-tuned.o/.preserve
 !fine-tuned.o/README.md
 !fine-tuned.o/metadata.yaml
+
+# i put random test things in here
+holding/*

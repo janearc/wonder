@@ -23,6 +23,8 @@ cd tools/wonder-local
 poetry install
 ```
 
+You probably want to define `$WONDER_ROOT` because things look for that.
+
 ## Usage
 
 All entrypoints are handled via `modengine.py` and routed dynamically through the modular engine:
@@ -77,6 +79,7 @@ Format, type-check, and test like a pro:
 ```bash
 poetry run black .
 poetry run isort .
+poetry run vulture src --min-confidence 90
 poetry run mypy .
 poetry run pytest
 ```
