@@ -1,7 +1,9 @@
-import markdown
-from xml.etree import ElementTree as ET
-from typing import List
 import re
+from typing import List
+from xml.etree import ElementTree as ET
+
+import markdown
+
 
 def markdown_to_xml(md_text: str) -> ET.Element:
     """
@@ -9,10 +11,10 @@ def markdown_to_xml(md_text: str) -> ET.Element:
     Automatically unwraps hard-wrapped paragraphs.
     """
     # Step 1: Normalize line endings
-    md_text = md_text.replace('\r\n', '\n').replace('\r', '\n')
+    md_text = md_text.replace("\r\n", "\n").replace("\r", "\n")
 
     # Step 2: Unwrap hard-wrapped paragraphs (merge lines unless separated by blank line)
-    lines = md_text.split('\n')
+    lines = md_text.split("\n")
     unwrapped_lines: List[str] = []
     buffer: List[str] = []
 
@@ -31,9 +33,8 @@ def markdown_to_xml(md_text: str) -> ET.Element:
     unwrapped_text = "\n".join(unwrapped_lines)
 
     # Step 3: Convert to HTML using markdown lib
-    html = markdown.markdown(unwrapped_text, extensions=['extra'])
+    html = markdown.markdown(unwrapped_text, extensions=["extra"])
 
     # Step 4: Parse to XML tree
     root = ET.fromstring(f"<root>{html}</root>")
     return root
-

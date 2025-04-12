@@ -1,5 +1,5 @@
 import re
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 
 def extract_title_and_content(markdown: str) -> Tuple[Optional[str], str]:
@@ -12,9 +12,8 @@ def extract_title_and_content(markdown: str) -> Tuple[Optional[str], str]:
     Returns:
         A tuple of (title, content). Title is None if not found.
     """
-    title_match = re.match(r'#\s+(.+?)(?:\n|$)', markdown)
+    title_match = re.match(r"#\s+(.+?)(?:\n|$)", markdown)
     title = title_match.group(1).strip() if title_match else None
 
-    content = markdown[title_match.end():].strip() if title_match else markdown.strip()
+    content = markdown[title_match.end() :].strip() if title_match else markdown.strip()
     return title, content
-

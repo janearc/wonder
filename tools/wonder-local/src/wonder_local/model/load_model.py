@@ -11,6 +11,7 @@ from rich.progress import (
 )
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+
 def load_model(self, model_path=None):
     self.logger.info("[cyan]Loading model...[/cyan]")
 

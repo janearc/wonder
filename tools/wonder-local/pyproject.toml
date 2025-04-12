@@ -25,6 +25,7 @@ textacy = "^0.13.0"
 markdown = "^3.8"
 teapotai = "^1.1.1"
 pydantic = "^2.11.3"
+vulture = "^2.14"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"

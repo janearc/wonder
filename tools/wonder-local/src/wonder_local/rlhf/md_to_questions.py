@@ -1,13 +1,15 @@
-import sys
-import torch
-import xml.etree.ElementTree as ET
-import re
 import json
+import re
+import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from wonder_local.lib.markdown_xml import markdown_to_xml
+
+import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from wonder_local.lib.benchmark import Benchmark
-from wonder_local.lib.pretraining import QuestionSet, QuestionEntry
+from wonder_local.lib.markdown_xml import markdown_to_xml
+from wonder_local.lib.pretraining import QuestionEntry, QuestionSet
+
 
 def md_to_questions(self, file_path: str):
     try:
@@ -28,7 +30,9 @@ def md_to_questions(self, file_path: str):
     max_input_length = 512
 
     if input_length > max_input_length:
-        self.logger.warning(f"⚠️ Skipping file '{file_path}': context too long ({input_length} > {max_input_length})")
+        self.logger.warning(
+            f"⚠️ Skipping file '{file_path}': context too long ({input_length} > {max_input_length})"
+        )
         return
 
     # TODO: be more flexible about this in the future, but flan is nice enough for now.
@@ -112,7 +116,9 @@ def md_to_questions(self, file_path: str):
                 do_sample=True,
                 num_return_sequences=1,
             )
-            answer = tokenizer.decode(output[0], skip_special_tokens=True).strip().lower()
+            answer = (
+                tokenizer.decode(output[0], skip_special_tokens=True).strip().lower()
+            )
             total_output_tokens += len(tokenizer(answer).input_ids)
             prev_len = len(answer_set)
             answer_set.add(answer)
@@ -126,8 +132,7 @@ def md_to_questions(self, file_path: str):
     benchmark.stop()
 
     question_entries = [
-        QuestionEntry(question=q, answers=a, approved=False)
-        for q, a in answers.items()
+        QuestionEntry(question=q, answers=a, approved=False) for q, a in answers.items()
     ]
     question_set = QuestionSet(context=context, questions=question_entries)
 
@@ -152,7 +157,9 @@ def md_to_questions(self, file_path: str):
 
     num_qs = question_set.question_count
     num_as = question_set.answer_count
-    self.logger.info(f"\n[❓] Generated {num_qs} answers with {num_as} answers for approval.")
+    self.logger.info(
+        f"\n[❓] Generated {num_qs} answers with {num_as} answers for approval."
+    )
 
 
 if __name__ == "__main__":

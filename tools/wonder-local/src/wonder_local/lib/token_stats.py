@@ -27,7 +27,7 @@ class TokenStatsTracker:
             original_tokens=original_tokens,
             processed_tokens=processed_tokens,
             reduction_ratio=reduction_ratio,
-            file_path=file_path
+            file_path=file_path,
         )
 
     def summary(self):
@@ -36,7 +36,8 @@ class TokenStatsTracker:
         total_files = len(self.token_stats)
         avg_reduction = (
             (total_original - total_processed) / max(1, total_original) * 100
-            if total_original else 0
+            if total_original
+            else 0
         )
         return {
             "files_processed": total_files,
@@ -44,4 +45,3 @@ class TokenStatsTracker:
             "total_processed_tokens": total_processed,
             "average_reduction_percent": avg_reduction,
         }
-

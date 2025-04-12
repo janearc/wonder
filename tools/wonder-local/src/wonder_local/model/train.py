@@ -10,6 +10,7 @@ from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArgum
 
 default_data_dir = os.path.join(os.environ.get("WONDER_ROOT", "."), "sigil")
 
+
 def train(
     self,
     data_dir: str = default_data_dir,
@@ -21,7 +22,9 @@ def train(
     # Fine-tune the model on text files in a directory recursively.
     self.logger.debug("[bold green]🧪 engine.train() is live[/bold green]")
 
-    default_model = self.config.get("train", {}).get("default_model", "meta-llama/Meta-Llama-3-8B-Instruct")
+    default_model = self.config.get("train", {}).get(
+        "default_model", "meta-llama/Meta-Llama-3-8B-Instruct"
+    )
 
     # Ensure the model and tokenizer are loaded and ready
     self.model = self.invoke("load_model", default_model)

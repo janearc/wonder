@@ -1,5 +1,6 @@
 import torch
 
+
 def generate(self, *args) -> str:
     # Ensure a prompt was passed
     if not args:
