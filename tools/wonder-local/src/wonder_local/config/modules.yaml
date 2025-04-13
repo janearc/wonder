@@ -62,6 +62,12 @@ md_to_questions:
   requires:
     - estimate
 
+md_to_questions_all:
+  path: wonder_local.rlhf.md_to_questions.md_to_questions_all
+  object_method: true
+  requires:
+    - estimate
+
 wonder_repl:
   path: wonder_local.repl.wonder_repl.wonder_repl
   object_method: true
