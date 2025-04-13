@@ -86,4 +86,4 @@ def load_model(self, model_path=None):
     self.logger.info(
         f"[bold green]🔧 Model loaded successfully on device: {self.device}[/bold green]"
     )
-    return model
+    return model, tokenizer, device
