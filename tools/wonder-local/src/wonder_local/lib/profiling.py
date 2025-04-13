@@ -3,10 +3,9 @@ from typing import Optional
 from pydantic import BaseModel
 from wordfreq import zipf_frequency
 from wonder_local.lib.markdown_xml import markdown_to_xml
-from wonder_local.model.load_model import load_model
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 import spacy
+from llama_cpp import Llama
 
 # Try to load spaCy, fallback logic can go here if needed
 try:
@@ -23,101 +22,90 @@ class SigilProfile(BaseModel):
     rarity_llm: float  # 0-1 normalized rarity via LLM
 
 class RarityAnalyzer:
-    def get_zipf_score(self, text: str, lang: str = "en") -> float:
-        # pull our words from the lexed and stripped md->xml
-        words = re.findall(r"\b\w+\b", text.lower())
+    def __init__(self):
+        default_gguf="/Users/jane/.cache/huggingface/hub/models--mradermacher--KONI-Llama3.1-8B-Instruct-20241024-i1-GGUF/snapshots/71f2e2fb2c081e980b9e92e750ff2eee23677bda/KONI-Llama3.1-8B-Instruct-20241024.i1-Q6_K.gguf"
+        self.model = Llama(model_path=default_gguf)
 
-        # sorry, friend, your score is in another castle
+    def get_zipf_score(self, text: str, lang: str = "en") -> float:
+        words = re.findall(r"\b\w+\b", text.lower())
         if not words:
             return 0.0
-
         scores = [zipf_frequency(word, lang, wordlist="large") for word in words]
         return sum(scores) / len(scores)
 
     def get_pos_rarity(self, text: str) -> float:
-        # Estimate lexical rarity based on POS-tag frequency.
         if not nlp:
-            return 0.5  # fallback neutral score
-
+            return 0.5
         doc = nlp(text)
         rare_tags = {"X", "SYM", "NUM", "INTJ", "PROPN"}
         rare_count = sum(1 for token in doc if token.pos_ in rare_tags)
         total = len(doc)
-
         if total == 0:
             return 0.5
-
         ratio = rare_count / total
         return self.normalize_rarity_score(ratio, method="pos")
 
-    def get_llm_rarity(self, model, tokenizer, context: str, input_length: int, logger) -> float:
-        rarity_prompt_text = (
-            "You are a linguistic researcher evaluating the difficulty of vocabulary in written passages.\n"
-            "Consider how technical, symbolic, or uncommon the words are—especially those that wouldn't appear in everyday speech.\n\n"
-            "Here is a passage:\n"
-            f"\"\"\"\n{context}\n\"\"\"\n\n"
-            "Rate the rarity of vocabulary in this passage on a scale from 0.0 to 1.0:\n"
-            " - 0.0 = very common, everyday language\n"
-            " - 1.0 = highly technical, obscure, symbolic, or rare language\n\n"
-            "Give your answer as a float number only. Do not explain."
+    def get_llm_rarity(self, context: str, logger) -> float:
+        prompt = (
+            "You are a language model evaluator. You will receive a passage of English text. "
+            "Your task is to assess how lexically rare the vocabulary is, returning a float from 0.0 (extremely common) to 1.0 (extremely rare). "
+            "Respond only with a single float. Do not explain. Do not add any commentary. Example: 0.42\n\n"
+            f"Passage:\n{context}\n\n"
+            "Return only the float on the next line.\nScore:\n"
         )
-
-        inputs = tokenizer(rarity_prompt_text, return_tensors="pt")
-
-        outputs = model.generate(
-            **inputs,
-            max_length=input_length,
-            temperature=0.8,
-            top_p=0.95,
-            top_k=75,
-            do_sample=True,
-            num_return_sequences=1,
-        )
-
-        result = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-        logger.info(f"llm rarity output: {result}")
 
         try:
-            return self.normalize_rarity_score(float(result.strip()), method="llm")
-        except ValueError:
-            logger.warning("Failed to parse LLM rarity response")
+            response = self.model(
+                prompt=prompt,
+                max_tokens=16,
+                temperature=0.8,
+                top_k=750,
+                top_p=0.90,
+                stop=["\n", "<|eot_id|>", "<|end_of_text|>"],
+            )
+
+            logger.info(f"🔍 Full LLM response: {response}")
+            result = response["choices"][0]["text"].strip()
+            logger.info(f"llm rarity output: {result}")
+    
+            match = re.search(r"(\d\.\d+)", result)
+            if not match:
+                # Try line-by-line in case it's not the first token
+                for line in result.splitlines():
+                    match = re.search(r"(\d\.\d+)", line)
+                    if match:
+                        return self.normalize_rarity_score(float(match.group()), method="llm")
+            else:
+                logger.warning("LLM output contained no float value")
+                return 0.5
+
+        except Exception as e:
+            logger.warning(f"Failed to generate or parse LLM rarity: {e}")
             return 0.5
+
+        return self.normalize_rarity_score(float(result), method="llm")
+
 
     def normalize_rarity_score(self, value: float, method: str) -> float:
         if method == "pos":
             return max(0.0, min(1.0, value))
         elif method == "llm":
-            return max(0.0, min(1.0, value))  # already normalized
-        return 0.5  # fallback neutral
-
-    def normalize_zipf(self, zipf: float) -> float:
-        # Normalize Zipf range [3.0, 7.0] → [1.0 (simple), 0.0 (rare)]
-        clamped = max(3.0, min(7.0, zipf))
-        return 1.0 - ((clamped - 3.0) / 4.0)  # invert: low zipf = high rarity
+            return max(0.0, min(1.0, value))
+        return 0.5
 
 def profile_sigil(self, text: str, title: Optional[str] = None) -> SigilProfile:
     # we assume that we are given markdown, and we convert md to xml
     root = markdown_to_xml(text)
+    # then we pull the text out of the xml rather than regexing
     paragraphs = [elem.text for elem in root.findall("p") if elem.text]
+    # then we join on newlines for the model
     context = "\n\n".join(paragraphs)
 
     analyzer = RarityAnalyzer()
-    zipf_avg = analyzer.normalize_zipf(analyzer.get_zipf_score(context))
+    zipf_avg = analyzer.get_zipf_score(context)
     input_length = self.invoke("estimate", context)
 
-    if input_length < 512:
-        # hard call to model, maybe be flexible in the future
-        model_name = "google/flan-t5-large"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-
-        # so what do you think, flan?
-        rarity_llm = analyzer.get_llm_rarity(model, tokenizer, context, input_length, self.logger)
-    else:
-        self.logger.warning(f"Input length {input_length} exceeds limit (512)")
-        rarity_llm = 0.5
-
+    rarity_llm = analyzer.get_llm_rarity(context, self.logger)
     rarity_pos = analyzer.get_pos_rarity(context)
 
     return SigilProfile(
