@@ -10,8 +10,12 @@ sigils:
   path: wonder_local.util.sigils.sigils
   object_method: true
 
-profile:
-  path: wonder_local.util.profile.profile
+sigil_profile:
+  path: wonder_local.util.sigil_profile.sigil_profile
+  object_method: true
+
+sigil_profile_all:
+  path: wonder_local.util.sigil_profile.sigil_profile_all
   object_method: true
 
 load_model:

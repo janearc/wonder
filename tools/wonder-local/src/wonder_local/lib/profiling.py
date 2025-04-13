@@ -1,8 +1,10 @@
 import re
+from functools import lru_cache
 from typing import Optional, List
 from pydantic import BaseModel
 from wordfreq import zipf_frequency
 from wonder_local.lib.markdown_xml import markdown_to_xml
+from wonder_local.lib.benchmark import Benchmark
 import spacy
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
@@ -14,13 +16,25 @@ except Exception as e:
     nlp = None
     print(f"⚠️ spaCy failed to load: {e}")
 
+@lru_cache(maxsize=1)
+def get_tokenizer_and_model():
+    # TODO: i'm not sure we can change this given the specificity of our prompts below
+    #       but i very much would prefer to
+    model_path = "meta-llama/Meta-Llama-3-8B-Instruct"
+    tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
+    model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16, device_map="auto")
+    model.eval()
+    return tokenizer, model
+
 class SigilProfile(BaseModel):
     title: str
-    token_count: int
     zipf_avg: float
     zipf_cluster: List[int]
     rare_terms: List[str]
     rarity_pos: float  # 0-1 normalized rarity via POS tags
+
+    # our native benchmarking class to include in the profile
+    benchmark: Optional[Benchmark]
 
     # llm derived "rare or unusual words" count
     @property
@@ -44,14 +58,15 @@ class SigilProfile(BaseModel):
     def zipf_low(self) -> int:
         return self.zipf_cluster[2]
 
-class RarityAnalyzer:
-    def __init__(self):
-        # TODO: i'm not sure we can change this given the specificity of our prompts below
-        #       but i very much would prefer to
-        model_path = "meta-llama/Meta-Llama-3-8B-Instruct"
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-        self.model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16, device_map="auto")
-        self.model.eval()
+class RarityAnalyzer():
+    def __init__(self, token_count: int, modengine):
+        # instantiate our benchmark object
+        benchmark = Benchmark(label="lexical_rarity", input_tokens=token_count)
+        benchmark.start()
+        self.benchmark = benchmark
+
+        self.tokenizer, self.model = get_tokenizer_and_model()
+        self.modengine = modengine
 
     # get the average zipf score of the text
     def get_zipf_score(self, text: str, lang: str = "en") -> float:
@@ -86,7 +101,10 @@ class RarityAnalyzer:
         if total == 0:
             return 0.5
         ratio = rare_count / total
-        return max(0.0, min(1.0, ratio))
+
+        # this is hard to compare to the other metrics, but lower numbers are less difficult
+        # to read/understand and higher numbers are more difficult.
+        return ratio
 
     def extract_rare_terms(self, context: str, logger) -> List[str]:
         prompt = (
@@ -107,14 +125,21 @@ class RarityAnalyzer:
         # the model can get kind of sassy so we need to really be careful looking through the output
         # for stuff that looks correct
         terms = []
+        seen = set()
         for line in result.splitlines():
             match = re.search(r"##\s*(.+)", line)
             if match:
                 term = match.group(1).strip()
-                if term and term[-1].isalpha():
+                if term and term[-1].isalpha() and term not in seen:
+                    seen.add(term)
                     terms.append(term)
-    
+
         logger.debug(f"✅ Cleaned rare terms: {terms}")
+
+        joined = ", ".join(terms)
+
+        self.benchmark.output_tokens = self.modengine.invoke("estimate", joined)
+
         return terms
 
 def profile_sigil(self, text: str, title: Optional[str] = None, estimate_tokens=None, logger=None) -> SigilProfile:
@@ -124,14 +149,14 @@ def profile_sigil(self, text: str, title: Optional[str] = None, estimate_tokens=
     # pull out the text from the flattened xml
     paragraphs = [elem.text for elem in root.findall("p") if elem.text]
 
-    # Dynamically estimate the ideal max length for the response
-    token_count = self.invoke("estimate", context)
-
     # create a wad of text for our analysis methods
     context = "\n\n".join(paragraphs)
 
+    # Dynamically estimate the ideal max length for the response
+    token_count = self.invoke("estimate", context)
+
     # instantiate analyzer
-    analyzer = RarityAnalyzer()
+    analyzer = RarityAnalyzer(token_count, self)
 
     # zipf analysis
     zipf_avg = analyzer.get_zipf_score(context)
@@ -143,12 +168,15 @@ def profile_sigil(self, text: str, title: Optional[str] = None, estimate_tokens=
     # llm-based analysis
     rare_terms = analyzer.extract_rare_terms(context, self.logger)
 
+    # stop the benchmark
+    analyzer.benchmark.stop()
+
     return SigilProfile(
         title=title or "unknown",
-        token_count=token_count,
         zipf_avg=zipf_avg,
-        zipf_cluster=zipf_cluster
+        zipf_cluster=zipf_cluster,
         rarity_pos=rarity_pos,
         rare_terms=rare_terms,
+        benchmark=analyzer.benchmark
     )
 

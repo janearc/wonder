@@ -109,6 +109,6 @@ if __name__ == "__main__":
     try:
         result = engine.invoke(method, *args)
         if result is not None:
-            print(result)
+            engine.logger.debug(result)
     except Exception:
         engine.logger.exception(f"\u2717 Error during '{method}'")
