@@ -90,7 +90,7 @@ class RarityAnalyzer():
                 cluster[2] += 1
         return cluster
 
-    # assess part-of-speech (pos) rarity score using stacy
+    # assess part-of-speech (pos) rarity score using spacy
     def get_pos_rarity(self, text: str) -> float:
         if not nlp:
             return 0.5  # fallback neutral score
