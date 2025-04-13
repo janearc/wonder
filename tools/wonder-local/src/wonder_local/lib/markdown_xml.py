@@ -3,12 +3,12 @@ from typing import List
 from xml.etree import ElementTree as ET
 
 import markdown
-
+from bs4 import BeautifulSoup
 
 def markdown_to_xml(md_text: str) -> ET.Element:
     """
     Converts Markdown text into an XML tree for structured parsing.
-    Automatically unwraps hard-wrapped paragraphs.
+    Automatically unwraps hard-wrapped paragraphs and strips inline formatting tags.
     """
     # Step 1: Normalize line endings
     md_text = md_text.replace("\r\n", "\n").replace("\r", "\n")
@@ -35,6 +35,12 @@ def markdown_to_xml(md_text: str) -> ET.Element:
     # Step 3: Convert to HTML using markdown lib
     html = markdown.markdown(unwrapped_text, extensions=["extra"])
 
-    # Step 4: Parse to XML tree
-    root = ET.fromstring(f"<root>{html}</root>")
+    # Step 4: Strip inline formatting like <strong>, <em>, etc.
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup.find_all(["strong", "em", "code", "span"]):
+        tag.unwrap()
+
+    # Step 5: Parse to XML tree
+    root = ET.fromstring(f"<root>{str(soup)}</root>")
     return root
+

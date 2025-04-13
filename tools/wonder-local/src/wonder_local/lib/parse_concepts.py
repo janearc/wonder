@@ -1,11 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
-import spacy
-
-nlp = spacy.load("en_core_web_sm")
-
-
 def parse_concepts_from_markdown(file_path: Path) -> List[Dict[str, Any]]:
     """
     Parse a markdown file into concept entries using semantic and syntactic heuristics.

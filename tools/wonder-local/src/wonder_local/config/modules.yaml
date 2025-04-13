@@ -6,6 +6,18 @@ hf_get:
   path: wonder_local.util.hf_get.hf_get
   object_method: true
 
+sigils:
+  path: wonder_local.util.sigils.sigils
+  object_method: true
+
+sigil_profile:
+  path: wonder_local.util.sigil_profile.sigil_profile
+  object_method: true
+
+sigil_profile_all:
+  path: wonder_local.util.sigil_profile.sigil_profile_all
+  object_method: true
+
 load_model:
   path: wonder_local.model.load_model.load_model
   object_method: true
