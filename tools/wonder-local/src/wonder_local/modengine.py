@@ -96,19 +96,23 @@ class ModularInferenceEngine:
         self._invoked.add(method_name)
         return result
 
-
-if __name__ == "__main__":
+def cli_entrypoint():
     if len(sys.argv) < 2:
-        print("Usage: python modengine.py <method> [args...]")
+        print("Usage: poetry run wonder <method> [args...]")
         sys.exit(1)
 
-    engine = ModularInferenceEngine()
     method = sys.argv[1]
     args = sys.argv[2:]
 
+    engine = ModularInferenceEngine()
     try:
         result = engine.invoke(method, *args)
         if result is not None:
             engine.logger.debug(result)
     except Exception:
         engine.logger.exception(f"\u2717 Error during '{method}'")
+
+
+if __name__ == "__main__":
+    cli_entrypoint()
+

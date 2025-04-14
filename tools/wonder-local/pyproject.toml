@@ -1,10 +1,13 @@
 [tool.poetry]
 name = "wonder-local"
 version = "0.1.0"
-description = "Local inference engine for Wonder Framework using Mistral-7B"
+description = "Local inference engine for Wonder Framework"
 authors = ["jane mf arc <jane.arc@pobox.com>"]
 readme = "README.md"
 packages = [{include = "wonder_local", from = "src"}]
+
+[tool.poetry.scripts]
+wonder = "wonder_local.modengine:cli_entrypoint"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
