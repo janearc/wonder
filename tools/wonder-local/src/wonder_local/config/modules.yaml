@@ -23,12 +23,21 @@ load_model:
   object_method: true
   default_model: "microsoft/phi-2"
 
+run_tests:
+  path: wonder_local.test.run_tests.run_tests
+  object_method: true
+
 generate:
   path: wonder_local.model.generate.generate
   object_method: true
   requires:
     - estimate
     - load_model
+  tests:
+    - input: "what is the capital of france?"
+      expected: "Paris"
+    - input: "how many legs does a dog have?"
+      expected: "4"
 
 llama_generate:
   path: wonder_local.llama.llama_generate.llama_generate
@@ -61,6 +70,20 @@ md_to_questions:
   object_method: true
   requires:
     - estimate
+
+md_to_questions_all:
+  path: wonder_local.rlhf.md_to_questions.md_to_questions_all
+  object_method: true
+  requires:
+    - estimate
+
+basic_repl:
+  path: wonder_local.repl.basic.repl
+  object_method: true
+
+rlhf_repl:
+  path: wonder_local.rlhf.repl.rlhf_repl
+  object_method: true
 
 wonder_repl:
   path: wonder_local.repl.wonder_repl.wonder_repl

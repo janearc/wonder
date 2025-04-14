@@ -3,11 +3,8 @@ import logging
 import os
 import sys
 
-from rich.console import Console
 from rich.logging import RichHandler
 from wonder_local.config.modules import MODULE_CONFIG
-
-console = Console()
 
 
 class ModularInferenceEngine:
@@ -67,7 +64,7 @@ class ModularInferenceEngine:
                     "requires": meta.get("requires", []),
                 }
 
-                self.logger.info("\u2713 Loaded method: %s \u2190 %s", name, path)
+                self.logger.debug("\u2713 Loaded method: %s \u2190 %s", name, path)
 
             except (ImportError, AttributeError) as e:
                 self.logger.error("Failed to load method %s from %s: %s", name, path, e)
@@ -95,20 +92,3 @@ class ModularInferenceEngine:
         result = self.modules[method_name](*args)
         self._invoked.add(method_name)
         return result
-
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python modengine.py <method> [args...]")
-        sys.exit(1)
-
-    engine = ModularInferenceEngine()
-    method = sys.argv[1]
-    args = sys.argv[2:]
-
-    try:
-        result = engine.invoke(method, *args)
-        if result is not None:
-            engine.logger.debug(result)
-    except Exception:
-        engine.logger.exception(f"\u2717 Error during '{method}'")

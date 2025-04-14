@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-import psutil
 import time
+
+import psutil
+from pydantic import BaseModel, Field
+
 
 class Benchmark(BaseModel):
     label: str = "Benchmark"
@@ -13,9 +15,7 @@ class Benchmark(BaseModel):
     cpu_end: psutil._common.pcputimes = Field(default=None, exclude=True)
     proc: psutil.Process = Field(default_factory=psutil.Process, exclude=True)
 
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
+    model_config = {"arbitrary_types_allowed": True}
 
     def start(self):
         self.start_time = time.perf_counter()
@@ -42,4 +42,6 @@ class Benchmark(BaseModel):
 
         if self.output_tokens > 0:
             print(f"- Token throughput: {self.token_throughput:.2f} tokens/sec")
-            print(f"- Input: {self.input_tokens} tokens, Output: {self.output_tokens} tokens")
+            print(
+                f"- Input: {self.input_tokens} tokens, Output: {self.output_tokens} tokens"
+            )

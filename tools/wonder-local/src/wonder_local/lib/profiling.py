@@ -1,13 +1,14 @@
 import re
 from functools import lru_cache
-from typing import Optional, List
-from pydantic import BaseModel
-from wordfreq import zipf_frequency
-from wonder_local.lib.markdown_xml import markdown_to_xml
-from wonder_local.lib.benchmark import Benchmark
+from typing import List, Optional
+
 import spacy
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+from pydantic import BaseModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from wonder_local.lib.benchmark import Benchmark
+from wonder_local.lib.markdown_xml import markdown_to_xml
+from wordfreq import zipf_frequency
 
 # Try to load spaCy, fallback logic can go here if needed
 try:
@@ -16,15 +17,19 @@ except Exception as e:
     nlp = None
     print(f"⚠️ spaCy failed to load: {e}")
 
+
 @lru_cache(maxsize=1)
 def get_tokenizer_and_model():
     # TODO: i'm not sure we can change this given the specificity of our prompts below
     #       but i very much would prefer to
     model_path = "meta-llama/Meta-Llama-3-8B-Instruct"
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-    model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16, device_map="auto")
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path, torch_dtype=torch.float16, device_map="auto"
+    )
     model.eval()
     return tokenizer, model
+
 
 class SigilProfile(BaseModel):
     title: str
@@ -58,7 +63,8 @@ class SigilProfile(BaseModel):
     def zipf_low(self) -> int:
         return self.zipf_cluster[2]
 
-class RarityAnalyzer():
+
+class RarityAnalyzer:
     def __init__(self, token_count: int, modengine):
         # instantiate our benchmark object
         benchmark = Benchmark(label="lexical_rarity", input_tokens=token_count)
@@ -113,15 +119,17 @@ class RarityAnalyzer():
             "Respond with a list of these terms, each starting with the marker ##.\n\n"
             f"<|PASSAGE|>\n\n{context}\n\n<|END|>"
         )
-    
+
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         with torch.no_grad():
             # this top_k is very spicy and could probably be turned down but was working well, so we keep it
-            output = self.model.generate(**inputs, max_new_tokens=128, temperature=0.7, top_k=750, top_p=0.95)
-    
+            output = self.model.generate(
+                **inputs, max_new_tokens=128, temperature=0.7, top_k=750, top_p=0.95
+            )
+
         result = self.tokenizer.decode(output[0], skip_special_tokens=True)
         logger.debug(f"🔍 Full LLM response: {result}")
-    
+
         # the model can get kind of sassy so we need to really be careful looking through the output
         # for stuff that looks correct
         terms = []
@@ -142,7 +150,10 @@ class RarityAnalyzer():
 
         return terms
 
-def profile_sigil(self, text: str, title: Optional[str] = None, estimate_tokens=None, logger=None) -> SigilProfile:
+
+def profile_sigil(
+    self, text: str, title: Optional[str] = None, estimate_tokens=None, logger=None
+) -> SigilProfile:
     # this slurps in markdown, converts to xml, then uses xml parsing to flatten everything
     root = markdown_to_xml(text)
 
@@ -177,6 +188,5 @@ def profile_sigil(self, text: str, title: Optional[str] = None, estimate_tokens=
         zipf_cluster=zipf_cluster,
         rarity_pos=rarity_pos,
         rare_terms=rare_terms,
-        benchmark=analyzer.benchmark
+        benchmark=analyzer.benchmark,
     )
-

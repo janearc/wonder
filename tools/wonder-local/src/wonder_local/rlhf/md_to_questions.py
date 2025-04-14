@@ -2,13 +2,28 @@ import json
 import re
 import sys
 import xml.etree.ElementTree as ET
+from functools import lru_cache
 from pathlib import Path
 
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from wonder_local.lib.all_sigils import list_sigil_files
 from wonder_local.lib.benchmark import Benchmark
 from wonder_local.lib.markdown_xml import markdown_to_xml
 from wonder_local.lib.pretraining import QuestionEntry, QuestionSet
+
+
+@lru_cache(maxsize=1)
+def get_tokenizer_and_model():
+    # TODO: i'm not sure we can change this given the specificity of our prompts below
+    #       but i very much would prefer to
+    # TODO: be more flexible about this in the future, but flan is nice enough for now.
+    model_name = "google/flan-t5-large"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+    model.eval()
+    return tokenizer, model
 
 
 def md_to_questions(self, file_path: str):
@@ -26,6 +41,8 @@ def md_to_questions(self, file_path: str):
     # Dynamically estimate the ideal max length for the response
     input_length = self.invoke("estimate", context)
 
+    tokenizer, model = get_tokenizer_and_model()
+
     # this is a hard limit in flan, we'll probably do this more gracefully in the future
     max_input_length = 512
 
@@ -34,11 +51,6 @@ def md_to_questions(self, file_path: str):
             f"⚠️ Skipping file '{file_path}': context too long ({input_length} > {max_input_length})"
         )
         return
-
-    # TODO: be more flexible about this in the future, but flan is nice enough for now.
-    model_name = "google/flan-t5-large"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     # we're using this prompt for flan to derive questions from the provided context
     # which can then be subsequently answered by flan, and used in training other models
@@ -158,10 +170,36 @@ def md_to_questions(self, file_path: str):
     num_qs = question_set.question_count
     num_as = question_set.answer_count
     self.logger.info(
-        f"\n[❓] Generated {num_qs} answers with {num_as} answers for approval."
+        f"\n[❓] Generated {num_qs} questions with {num_as} answers for approval."
     )
 
 
+def md_to_questions_all(self, sigil_path: str):
+
+    if not sigil_path:
+        self.logger.debug("No explicit path provided, using config defaults")
+        sigil_path = self.config.get("sigils", {}).get("default_path")
+
+    if not sigil_path or not Path(sigil_path).exists():
+        self.logger.warning(
+            "Supplied or config-defined sigil path not readable, falling back"
+        )
+        sigil_path = Path(os.environ["WONDER_ROOT"]) / "sigil"
+
+        if not sigil_path.exists():
+            raise RuntimeError("No suitable path available for sigil discovery")
+
+    sigil_files = list_sigil_files(Path(sigil_path))
+    for s in sigil_files:
+        self.logger.info(f"Sigil located: {s}")
+
+        # no return value, logs and writes to disk. this function also does error
+        # handling around file access so we don't have to
+        # self.logger.info(f"sending sigil {s} to pretrainer")
+        md_to_questions(self, s)
+
+
+# i think the below can be omitted because we handle this in modengine
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: python modengine.py md_to_questions <markdown_file>")

@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+
 from wonder_local.lib.all_sigils import list_sigil_files
+
 
 def sigils(self, *args):
     sigil_path = args[0] if args else None
@@ -10,7 +12,9 @@ def sigils(self, *args):
         sigil_path = self.config.get("sigils", {}).get("default_path")
 
     if not sigil_path or not Path(sigil_path).exists():
-        self.logger.warning("Supplied or config-defined sigil path not readable, falling back")
+        self.logger.warning(
+            "Supplied or config-defined sigil path not readable, falling back"
+        )
         sigil_path = Path(os.environ["WONDER_ROOT"]) / "sigil"
 
         if not sigil_path.exists():

@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
-from wonder_local.lib.profiling import profile_sigil, SigilProfile
+
 from wonder_local.lib.all_sigils import list_sigil_files
+from wonder_local.lib.profiling import SigilProfile, profile_sigil
+
 
 # sorry this is confusing, the word 'profile' is pretty common (stacy uses it)
 def sigil_profile(self, file_path: str) -> SigilProfile:
@@ -13,7 +15,7 @@ def sigil_profile(self, file_path: str) -> SigilProfile:
         return
 
     sigil_stem = Path(file_path).stem
-    
+
     profiled = profile_sigil(self, md, sigil_stem)
 
     self.logger.info(f"📊 Profile ({sigil_stem}): benchmark: {profiled.benchmark}")
@@ -26,6 +28,7 @@ def sigil_profile(self, file_path: str) -> SigilProfile:
 
     return profiled
 
+
 def sigil_profile_all(self, path):
     sigil_path = path if path else None
 
@@ -34,7 +37,9 @@ def sigil_profile_all(self, path):
         sigil_path = self.config.get("sigils", {}).get("default_path")
 
     if not sigil_path or not Path(sigil_path).exists():
-        self.logger.warning("Supplied or config-defined sigil path not readable, falling back")
+        self.logger.warning(
+            "Supplied or config-defined sigil path not readable, falling back"
+        )
         sigil_path = Path(os.environ["WONDER_ROOT"]) / "sigil"
 
         if not sigil_path.exists():
@@ -62,6 +67,8 @@ def sigil_profile_all(self, path):
                 json.dump(profiled.model_dump(), f, indent=2)
                 profiled.benchmark.report()
         except Exception as e:
-            self.logger.error(f"❌ Failed to write file '{sigil_name}-taxonometry.json': {e}")
+            self.logger.error(
+                f"❌ Failed to write file '{sigil_name}-taxonometry.json': {e}"
+            )
 
     return
