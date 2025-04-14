@@ -15,13 +15,16 @@ def generate(self, *args) -> str:
     )
 
     # Ensure the model and tokenizer are loaded and ready
-    self.model = self.invoke("load_model", default_model)
+    m, t, d = self.invoke("load_model", default_model)
+    self.model = m
+    self.tokenizer = t
+    self.device = d
 
     if not self.model or not self.tokenizer:
         raise RuntimeError("Model not loaded. Call load_model() first.")
 
     # Dynamically estimate the ideal max length for the response
-    max_length = self.invoke("estimate", prompt)
+    max_length = max(64, self.invoke("estimate", prompt))
 
     # Tokenize input and move to correct device
     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
@@ -42,4 +45,7 @@ def generate(self, *args) -> str:
     )
 
     # Decode the output into a clean string and return
-    return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+    generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+    self.logger.info(f"generated: {generated}")
+
+    return generated
