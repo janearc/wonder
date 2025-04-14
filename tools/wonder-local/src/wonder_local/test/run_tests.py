@@ -1,6 +1,7 @@
 from wonder_local.config.modules import MODULE_CONFIG
 from wonder_local.lib.modengine import ModularInferenceEngine
 
+
 def run_tests(self):
     failures = []
 
@@ -22,7 +23,9 @@ def run_tests(self):
 
                 if expected is not None:
                     # Loose match
-                    assert expected in str(result), f"Expected '{expected}' in result, got: '{result}'"
+                    assert expected in str(
+                        result
+                    ), f"Expected '{expected}' in result, got: '{result}'"
                 self.logger.info(f"✅ {name} test {idx+1} passed")
             except AssertionError as ae:
                 self.logger.error(f"❌ {name} test {idx+1} failed assertion: {ae}")

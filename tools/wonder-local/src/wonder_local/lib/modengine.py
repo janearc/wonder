@@ -6,6 +6,7 @@ import sys
 from rich.logging import RichHandler
 from wonder_local.config.modules import MODULE_CONFIG
 
+
 class ModularInferenceEngine:
     def __init__(self):
         # Internal registries and state

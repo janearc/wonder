@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 import json
 
@@ -21,6 +21,10 @@ class QuestionEntry(BaseModel):
         False,
         description="Whether this question has been approved for use in training.",
     )
+    approved: bool = Field(
+        False,
+        description="Whether this question has been approved for use in training.",
+    )
 
 
 # Represents a set of related questions, all from a single context
@@ -28,6 +32,12 @@ class QuestionSet(BaseModel):
     context: str = Field(..., description="The full XML-encoded markdown context.")
     questions: List[QuestionEntry] = Field(
         ..., description="A list of question entries generated from the context."
+    )
+    filename: Optional[str] = Field(
+        None, description="The source filename of the question set (for tracking)."
+    )
+    reviewed: bool = Field(
+        False, description="Whether this question set has been reviewed."
     )
 
     # Alternate constructor for creating a QuestionSet from raw data
@@ -43,7 +53,6 @@ class QuestionSet(BaseModel):
                 )
             )
         return cls(context=context, questions=question_entries)
-
 
     # Property that returns number of questions in this set
     @property
@@ -107,6 +116,16 @@ class SigilReviewCorpus(BaseModel):
     def qsets(self) -> List[QuestionSet]:
         return self.sets
 
+    # only return questionsets that have not been reviewed
+    def qsets_to_review(self) -> List[QuestionSet]:
+        return [qset for qset in self.sets if not qset.reviewed]
+
+    # only return questionsets that have not been approved
+    def qsets_not_approved(self) -> List[QuestionSet]:
+        return [
+            qset for qset in self.sets if not all(q.approved for q in qset.questions)
+        ]
+
 
 # Reads all -review.json files from a directory and returns a populated SigilReviewCorpus
 def DataToSigilReviewCorpus(data: str) -> SigilReviewCorpus:
@@ -118,9 +137,10 @@ def DataToSigilReviewCorpus(data: str) -> SigilReviewCorpus:
         try:
             with open(file, "r") as f:
                 data = json.load(f)
-                question_sets.append(QuestionSet(**data))
+                qset = QuestionSet(**data)
+                qset.filename = str(file)
+                question_sets.append(qset)
         except Exception as e:
             raise RuntimeError(f"Failed to load {file}: {e}")
 
     return SigilReviewCorpus(sets=question_sets)
-
