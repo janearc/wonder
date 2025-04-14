@@ -1,12 +1,15 @@
-from rich.console import Console
-from transformers import pipeline
 from functools import lru_cache
 
+from rich.console import Console
+from transformers import pipeline
+
 console = Console()
+
 
 @lru_cache(maxsize=1)
 def get_dry_pipeline():
     return pipeline("text-generation", model="distilgpt2", tokenizer="distilgpt2")
+
 
 def generate_estimated(prompt: str) -> int:
     # Estimate an appropriate max_length using a small model.
@@ -14,7 +17,9 @@ def generate_estimated(prompt: str) -> int:
 
     try:
         dry = get_dry_pipeline()
-        sample = dry(prompt, max_new_tokens=128, num_return_sequences=1)[0]["generated_text"]
+        sample = dry(prompt, max_new_tokens=128, num_return_sequences=1)[0][
+            "generated_text"
+        ]
 
         input_ids = dry.tokenizer(prompt).input_ids
         estimated_tokens = int(len(input_ids) * 1.5)

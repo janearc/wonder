@@ -1,16 +1,17 @@
 import json
-from functools import lru_cache
 import re
 import sys
 import xml.etree.ElementTree as ET
+from functools import lru_cache
 from pathlib import Path
 
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from wonder_local.lib.all_sigils import list_sigil_files
 from wonder_local.lib.benchmark import Benchmark
 from wonder_local.lib.markdown_xml import markdown_to_xml
 from wonder_local.lib.pretraining import QuestionEntry, QuestionSet
-from wonder_local.lib.all_sigils import list_sigil_files
+
 
 @lru_cache(maxsize=1)
 def get_tokenizer_and_model():
@@ -23,6 +24,7 @@ def get_tokenizer_and_model():
 
     model.eval()
     return tokenizer, model
+
 
 def md_to_questions(self, file_path: str):
     try:
@@ -171,6 +173,7 @@ def md_to_questions(self, file_path: str):
         f"\n[❓] Generated {num_qs} questions with {num_as} answers for approval."
     )
 
+
 def md_to_questions_all(self, sigil_path: str):
 
     if not sigil_path:
@@ -178,7 +181,9 @@ def md_to_questions_all(self, sigil_path: str):
         sigil_path = self.config.get("sigils", {}).get("default_path")
 
     if not sigil_path or not Path(sigil_path).exists():
-        self.logger.warning("Supplied or config-defined sigil path not readable, falling back")
+        self.logger.warning(
+            "Supplied or config-defined sigil path not readable, falling back"
+        )
         sigil_path = Path(os.environ["WONDER_ROOT"]) / "sigil"
 
         if not sigil_path.exists():

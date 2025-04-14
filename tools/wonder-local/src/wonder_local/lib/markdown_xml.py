@@ -5,6 +5,7 @@ from xml.etree import ElementTree as ET
 import markdown
 from bs4 import BeautifulSoup
 
+
 def markdown_to_xml(md_text: str) -> ET.Element:
     """
     Converts Markdown text into an XML tree for structured parsing.
@@ -43,4 +44,3 @@ def markdown_to_xml(md_text: str) -> ET.Element:
     # Step 5: Parse to XML tree
     root = ET.fromstring(f"<root>{str(soup)}</root>")
     return root
-
