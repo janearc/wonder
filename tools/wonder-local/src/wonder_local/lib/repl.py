@@ -41,6 +41,13 @@ class Encounter:
         # edit assuming JSON structure, with built-in JSON validation
         return self.edit(validator=self.validator)
 
+
+class YNQValidator(Validator):
+    def validate(self, document):
+        text = document.text.lower()
+        if text not in ["y", "yes", "n", "no", "q"]:
+            raise ValidationError(message="Please answer [y/n/q].")
+
 class InteractiveShell:
     def __init__(
         self,
@@ -56,6 +63,7 @@ class InteractiveShell:
         self.heap = heap or ReplHeap()
         self.interpreter = interpreter or self.default_interpreter
         self.running = False
+        self.modengine = modengine
         self.logger = modengine.logger
 
     def default_interpreter(self, encounter: Encounter):
@@ -65,23 +73,4 @@ class InteractiveShell:
     def run(self):
         self.running = True
         self.logger.info(f"{__name__} running shell")
-        while self.heap:
-            item = self.heap.pop(0)
-            encounter = Encounter(item, logger=self.logger)
-            self.interpreter(encounter)
-            while True:
-                answer = self.session.prompt(self.prompt_str)
-                if answer.lower() in ["y", "yes"]:
-                    click.secho("✅ Committed.", fg="green")
-                    break
-                elif answer.lower() in ["n", "no"]:
-                    if encounter.edit_json():
-                        continue
-                    else:
-                        click.secho("Aborting edit.", fg="red")
-                elif answer.lower() == "q":
-                    self.running = False
-                    return
-                else:
-                    click.secho("Please answer [y/n/q].", fg="yellow")
-
+        self.interpreter(self.modengine, self.heap, self.session)

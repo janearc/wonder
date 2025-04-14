@@ -81,6 +81,10 @@ basic_repl:
   path: wonder_local.repl.basic.repl
   object_method: true
 
+rlhf_repl:
+  path: wonder_local.rlhf.repl.rlhf_repl
+  object_method: true
+
 wonder_repl:
   path: wonder_local.repl.wonder_repl.wonder_repl
   object_method: true
