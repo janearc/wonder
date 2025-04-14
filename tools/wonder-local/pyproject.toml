@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "wonder_local", from = "src"}]
 
 [tool.poetry.scripts]
-wonder = "wonder_local.modengine:cli_entrypoint"
+wonder = "wonder_local.entry:main"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"

@@ -1,28 +1,35 @@
 from typing import Callable, Any, Optional
 from prompt_toolkit import PromptSession
+from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit.shortcuts import prompt
-from wonder_local.modengine import ModularInferenceEngine
-from pydantic import BaseModel
+from prompt_toolkit.styles import Style
+from prompt_toolkit.key_binding import KeyBindings
+from wonder_local.lib.modengine import ModularInferenceEngine
 import click
 import json
+import logging
 
+# REPL heap is a structured, shared mutable context passed to interpreter logic
+class ReplHeap(dict):
+    # A shared mutable context for REPL sessions, passed into interpreters to provide state
+    def get_tasks(self, key="questions"):
+        return self.get(key, [])
 
 class Encounter:
-    def __init__(self, data: Any, logger, validator: Optional[Callable[[Any], bool]] = None):
-        if not logger:
-            raise RuntimeError("Logger is required for Encounter")
+    def __init__(self, data: Any, validator: Optional[Callable[[Any], bool]] = None, logger: Optional[logging.Logger] = None):
         self.original = data
         self.current = data
-        self.logger = logger
         self.validator = validator
+        self.logger = logger or logging.getLogger(__name__)
 
-    def edit(self, parser: Optional[Callable[[str], Any]] = None) -> bool:
-        edited = click.edit(json.dumps(self.current, indent=2) if parser == json.loads else str(self.current))
+    def edit(self, validator: Optional[Callable[[Any], bool]] = None) -> bool:
+        # open the user's $EDITOR with the data serialized as JSON
+        edited = click.edit(json.dumps(self.current, indent=2))
         if not edited:
             return False
         try:
-            parsed = parser(edited) if parser else edited
-            if self.validator and not self.validator(parsed):
+            parsed = json.loads(edited)
+            if validator and not validator(parsed):
                 raise ValueError("Custom validation failed")
             self.current = parsed
             return True
@@ -31,8 +38,8 @@ class Encounter:
             return False
 
     def edit_json(self) -> bool:
-        return self.edit(parser=json.loads)
-
+        # edit assuming JSON structure, with built-in JSON validation
+        return self.edit(validator=self.validator)
 
 class InteractiveShell:
     def __init__(
@@ -40,20 +47,20 @@ class InteractiveShell:
         modengine: ModularInferenceEngine,
         name: str = "wonder-repl",
         prompt_str: str = "> ",
-        heap: list = None,
-        interpreter: Optional[Callable[[Encounter], None]] = None,
+        heap: Optional[ReplHeap] = None,
+        interpreter: Optional[Callable[[Encounter], None]] = None
     ):
         self.name = name
         self.prompt_str = prompt_str
         self.session = PromptSession()
-        self.heap = heap or []
+        self.heap = heap or ReplHeap()
         self.interpreter = interpreter or self.default_interpreter
         self.running = False
         self.logger = modengine.logger
 
     def default_interpreter(self, encounter: Encounter):
-        click.echo("Default interpreter. Override this.")
-        click.echo(str(encounter.current))
+        click.secho("Default interpreter. Override this.", fg="yellow")
+        click.secho(str(encounter.current), fg="cyan")
 
     def run(self):
         self.running = True
@@ -65,16 +72,16 @@ class InteractiveShell:
             while True:
                 answer = self.session.prompt(self.prompt_str)
                 if answer.lower() in ["y", "yes"]:
-                    click.echo("✅ Committed.")
+                    click.secho("✅ Committed.", fg="green")
                     break
                 elif answer.lower() in ["n", "no"]:
                     if encounter.edit_json():
                         continue
                     else:
-                        click.echo("Aborting edit.")
+                        click.secho("Aborting edit.", fg="red")
                 elif answer.lower() == "q":
                     self.running = False
                     return
                 else:
-                    click.echo("Please answer [y/n/q].")
+                    click.secho("Please answer [y/n/q].", fg="yellow")
 

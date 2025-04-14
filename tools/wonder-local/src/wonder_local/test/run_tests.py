@@ -1,5 +1,5 @@
 from wonder_local.config.modules import MODULE_CONFIG
-from wonder_local.modengine import ModularInferenceEngine
+from wonder_local.lib.modengine import ModularInferenceEngine
 
 def run_tests(self):
     failures = []
