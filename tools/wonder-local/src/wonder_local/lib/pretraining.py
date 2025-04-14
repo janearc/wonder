@@ -1,6 +1,6 @@
-from typing import List, Optional
-from pathlib import Path
 import json
+from pathlib import Path
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
