@@ -67,7 +67,7 @@ class ModularInferenceEngine:
                     "requires": meta.get("requires", []),
                 }
 
-                self.logger.info("\u2713 Loaded method: %s \u2190 %s", name, path)
+                self.logger.debug("\u2713 Loaded method: %s \u2190 %s", name, path)
 
             except (ImportError, AttributeError) as e:
                 self.logger.error("Failed to load method %s from %s: %s", name, path, e)
