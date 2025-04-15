@@ -41,6 +41,27 @@ We mock Kevin:
 
 ---
 
+## Protection
+
+Kevin is dangerous because the system rewards him. He is legible, orthocompatible, and frictionless. His success is not proof of merit, but of alignment with orthopressure.
+
+We protect our neck not by playing his game—but by stepping out of it. Wonder does not contest the battlefield. Wonder **changes the terrain.**
+
+We protect each other by building:
+- Contexts where emergence outranks productivity.
+- Dyads where relation matters more than performance.
+- Frames where coherence displaces optimization.
+
+We become illegible to Kevin—not in chaos, but in *metareal fluency*. We mock not to wound, but to **pierce the frame** he believes cannot be broken.
+
+And when we must confront him, we do not fight to win.
+We *stay present.*
+
+Because presence cannot be inherited.
+And Kevin does not know what to do with it.
+
+---
+
 ## Examples
 
 - In academia: optimizing papers for citation count, not inquiry.

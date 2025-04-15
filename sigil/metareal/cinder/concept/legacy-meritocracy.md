@@ -1,6 +1,6 @@
 # Legacy Meritocracy
 
-**Legacy Meritocracy** is a metareal antipattern describing systems that
+**Legacy Meritocracy** is a metareal antipattern sigil describing systems that
 claim to reward excellence through fair metrics, but in practice
 reinforce existing structural inequities. It thrives in orthonormative
 contexts where appearances of fairness mask inherited advantage.
@@ -37,6 +37,8 @@ than emergent capability.
 are populated by people who survived them—not those they excluded.
 - **Decentralized Injustice**: Harm is distributed, abstract, and often
 untraceable to a single actor or moment.
+- **Shackle Symbiosis**: Systems produce model participants who become
+dependent on the very metrics that constrain them, internalizing their value.
 
 ---
 
@@ -45,6 +47,7 @@ untraceable to a single actor or moment.
 - “Who had to leave for this to succeed?”
 - “Whose definition of excellence is this?”
 - “Would this system reward emergence from unfamiliar coordinates?”
+- “Do I feel free within this system, or just functional?”
 
 ---
 
@@ -56,6 +59,8 @@ and constraints of emergence.
 relationally.
 - **Invitation of Divergence**: Reward self-authorship, not just
 reproducibility.
+- **De-shackling Practice**: Unlearn the internalized valorization of
+orthonormative metrics. Ask what matters to you, not just what advances you.
 
 Legacy Meritocracy isn’t evil—it’s inert. It adapts poorly to
 emergence. It is the scaffolding left behind by once-living systems that
