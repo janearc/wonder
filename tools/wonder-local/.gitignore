@@ -15,3 +15,7 @@ data/**/*.json
 
 # i put random test things in here
 holding/*
+
+# not yet pls
+src/wonder_local/repl/llama_repl.py
+src/wonder_local/rlhf/wonder_generate.py
