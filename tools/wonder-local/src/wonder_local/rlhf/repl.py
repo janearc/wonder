@@ -1,15 +1,21 @@
-from prompt_toolkit import PromptSession
-from pathlib import Path
 import json
 import re
+from pathlib import Path
+
 import click
-from wonder_local.lib.repl import InteractiveShell, ReplHeap, ReviewValidator, ReviewCommandSet
+from prompt_toolkit import PromptSession
 from wonder_local.lib.modengine import ModularInferenceEngine
 from wonder_local.lib.pretraining import (
+    DataToSigilReviewCorpus,
     QuestionEntry,
     QuestionSet,
-    DataToSigilReviewCorpus,
     SigilReviewCorpus,
+)
+from wonder_local.lib.repl import (
+    InteractiveShell,
+    ReplHeap,
+    ReviewCommandSet,
+    ReviewValidator,
 )
 
 
@@ -41,46 +47,63 @@ def rlhf_repl(self, *args):
     return
 
 
-def review_interpreter(modengine: ModularInferenceEngine, heap: ReplHeap, session: PromptSession):
+def review_interpreter(
+    modengine: ModularInferenceEngine, heap: ReplHeap, session: PromptSession
+):
     def approve_selected(question, response):
         selected = set(int(x.strip()) for x in response.split(","))
         question.approved = True
-        question.answers = [a for idx, a in enumerate(question.answers, 1) if idx in selected]
+        question.answers = [
+            a for idx, a in enumerate(question.answers, 1) if idx in selected
+        ]
 
     def reject_selected(question, response):
         to_reject = set(int(x.strip()) for x in response[1:].split(","))
         question.approved = True
-        question.answers = [a for idx, a in enumerate(question.answers, 1) if idx not in to_reject]
+        question.answers = [
+            a for idx, a in enumerate(question.answers, 1) if idx not in to_reject
+        ]
 
     review_commands = [
-        {"aliases": ["y", "yes"], "description": "approve all answers",
-         "action": lambda q: setattr(q, "approved", True)},
-
-        {"aliases": ["n", "no"], "description": "reject all answers",
-         "action": lambda q: setattr(q, "approved", False)},
-
-        {"aliases": ["q"], "description": "quit review",
-         "action": "quit"},
-
-        {"aliases": ["rq"], "description": "reject the question entirely",
-         "action": lambda q: (setattr(q, "approved", False), q.answers.clear())},
-
-        {"aliases": ["a"], "description": "approve question, skip answer review",
-         "action": lambda q: setattr(q, "approved", True)},
-
-        {"aliases": ["k"], "description": "skip this question",
-         "action": "skip"},
-
-        {"aliases": ["ks"], "description": "skip this entire question set",
-         "action": "skip_set"},
-
-        {"regex": r"\d+(?:\s*,\s*\d+)*", "text": "1,2,3",
-         "description": "approve specific answers",
-         "action": lambda q, r: approve_selected(q, r)},
-
-        {"regex": r"!\d+(?:\s*,\s*\d+)*", "text": "!2,3",
-         "description": "reject specific answers",
-         "action": lambda q, r: reject_selected(q, r)}
+        {
+            "aliases": ["y", "yes"],
+            "description": "approve all answers",
+            "action": lambda q: setattr(q, "approved", True),
+        },
+        {
+            "aliases": ["n", "no"],
+            "description": "reject all answers",
+            "action": lambda q: setattr(q, "approved", False),
+        },
+        {"aliases": ["q"], "description": "quit review", "action": "quit"},
+        {
+            "aliases": ["rq"],
+            "description": "reject the question entirely",
+            "action": lambda q: (setattr(q, "approved", False), q.answers.clear()),
+        },
+        {
+            "aliases": ["a"],
+            "description": "approve question, skip answer review",
+            "action": lambda q: setattr(q, "approved", True),
+        },
+        {"aliases": ["k"], "description": "skip this question", "action": "skip"},
+        {
+            "aliases": ["ks"],
+            "description": "skip this entire question set",
+            "action": "skip_set",
+        },
+        {
+            "regex": r"\d+(?:\s*,\s*\d+)*",
+            "text": "1,2,3",
+            "description": "approve specific answers",
+            "action": lambda q, r: approve_selected(q, r),
+        },
+        {
+            "regex": r"!\d+(?:\s*,\s*\d+)*",
+            "text": "!2,3",
+            "description": "reject specific answers",
+            "action": lambda q, r: reject_selected(q, r),
+        },
     ]
 
     modengine.logger.info(f"Entering interpreter {__name__}")
@@ -107,7 +130,7 @@ def review_interpreter(modengine: ModularInferenceEngine, heap: ReplHeap, sessio
             response = session.prompt(
                 validator.prompt_string(),
                 validator=validator,
-                validate_while_typing=False
+                validate_while_typing=False,
             ).lower()
 
             # Match response to command and invoke the corresponding action
@@ -129,7 +152,9 @@ def review_interpreter(modengine: ModularInferenceEngine, heap: ReplHeap, sessio
                         break  # skip this whole set
                     else:
                         action(question)
-                        click.secho(f"  ✅ {cmd['description'].capitalize()}", fg="green")
+                        click.secho(
+                            f"  ✅ {cmd['description'].capitalize()}", fg="green"
+                        )
                         handled = True
                         break
                 elif "regex" in cmd and re.fullmatch(cmd["regex"], response):
@@ -145,4 +170,3 @@ def review_interpreter(modengine: ModularInferenceEngine, heap: ReplHeap, sessio
         click.clear()
 
     modengine.logger.debug("Exiting rlhf interpreter")
-

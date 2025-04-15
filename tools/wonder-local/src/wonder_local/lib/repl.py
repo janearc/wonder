@@ -1,14 +1,15 @@
-from typing import Callable, Any, Optional, Union, List
-from prompt_toolkit import PromptSession
-from prompt_toolkit.validation import Validator, ValidationError
-from prompt_toolkit.shortcuts import prompt
-from prompt_toolkit.styles import Style
-from prompt_toolkit.key_binding import KeyBindings
-from wonder_local.lib.modengine import ModularInferenceEngine
-import click
 import json
 import logging
 import re
+from typing import Any, Callable, List, Optional, Union
+
+import click
+from prompt_toolkit import PromptSession
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.shortcuts import prompt
+from prompt_toolkit.styles import Style
+from prompt_toolkit.validation import ValidationError, Validator
+from wonder_local.lib.modengine import ModularInferenceEngine
 
 
 # REPL heap is a structured, shared mutable context passed to interpreter logic
@@ -48,6 +49,7 @@ class Encounter:
     def edit_json(self) -> bool:
         # edit assuming JSON structure, with built-in JSON validation
         return self.edit(validator=self.validator)
+
 
 # this is a class that describes both the inputs and the validation for the inputs
 # and which incidentally can create a usage string and a prompt string
@@ -107,6 +109,7 @@ class ReviewCommandSet:
     def is_valid(self, text: str) -> bool:
         return self.match(text) is not None
 
+
 # a pretty burly validator class that is used for rlhf which is a very special kind of validator
 class ReviewValidator(Validator):
     def __init__(self, review_commands):
@@ -130,6 +133,7 @@ class ReviewValidator(Validator):
 
     def usage_string(self):
         return self.review_commandset.usage_string()
+
 
 # very basic validator class
 class YNQValidator(Validator):

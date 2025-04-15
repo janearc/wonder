@@ -1,5 +1,5 @@
-from wonder_local.lib.repl import InteractiveShell
 from wonder_local.lib.modengine import ModularInferenceEngine
+from wonder_local.lib.repl import InteractiveShell
 
 
 # Just a toy interpreter for now
