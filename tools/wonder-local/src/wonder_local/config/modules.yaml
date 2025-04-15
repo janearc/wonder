@@ -18,6 +18,22 @@ sigil_profile_all:
   path: wonder_local.util.sigil_profile.sigil_profile_all
   object_method: true
 
+find_missing_signatures:
+  path: wonder_local.util.sigil_profile.find_missing_signatures
+  object_method: true
+
+fix_missing_signatures:
+  path: wonder_local.util.sigil_profile.fix_missing_signatures
+  object_method: true
+
+load_signatures:
+  path: wonder_local.rlhf.signature_review.load_signatures
+  object_method: true
+
+report_missing_rarity:
+  path: wonder_local.rlhf.signature_review.report_missing_rarity
+  object_method: true
+
 load_model:
   path: wonder_local.model.load_model.load_model
   object_method: true
