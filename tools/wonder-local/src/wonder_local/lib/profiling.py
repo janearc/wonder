@@ -1,14 +1,18 @@
+from pathlib import Path
+from datetime import datetime
 import re
+import json
 from functools import lru_cache
 from typing import List, Optional
 
 import spacy
 import torch
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from wonder_local.lib.benchmark import Benchmark
 from wonder_local.lib.markdown_xml import markdown_to_xml
 from wordfreq import zipf_frequency
+from wonder_local.lib.git_stats import GitStats
 
 # Try to load spaCy, fallback logic can go here if needed
 try:
@@ -30,7 +34,6 @@ def get_tokenizer_and_model():
     model.eval()
     return tokenizer, model
 
-
 class SigilProfile(BaseModel):
     title: str
     zipf_avg: float
@@ -38,8 +41,22 @@ class SigilProfile(BaseModel):
     rare_terms: List[str]
     rarity_pos: float  # 0-1 normalized rarity via POS tags
 
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()}
+    )
+
     # our native benchmarking class to include in the profile
     benchmark: Optional[Benchmark]
+
+    # indicate the filename for later review
+    filename: Optional[str] = Field(
+        None, description="The source filename of the signature (for tracking)."
+    )
+
+    # add the git stats if available
+    git_stats: Optional[GitStats] = Field(
+        None, description="git statistics for the sigil being profiled."
+    )
 
     # llm derived "rare or unusual words" count
     @property
@@ -62,6 +79,35 @@ class SigilProfile(BaseModel):
     @property
     def zipf_low(self) -> int:
         return self.zipf_cluster[2]
+
+class SigilProfileCorpus(BaseModel):
+    signatures: List[SigilProfile] = Field(
+        ..., description="a full set of sigil taxonometric signatures"
+    )
+
+    # Number of signatures loaded
+    @property
+    def length(self) -> int:
+        return len(self.signatures)
+
+    # Removes and returns the first SigilProfile
+    def pop(self) -> SigilProfile:
+        return self.signatures.pop(0)
+
+    # Adds a SigilProfile to the end
+    def push(self, qset: SigilProfile):
+        self.sets.append(qset)
+
+    # Returns all SigilProfiles with no rare terms
+    def no_rare_terms(self) -> List[SigilProfile]:
+        return [sig for sig in self.signatures if sig.rare_term_count == 0]
+
+    # Returns filenames of all SigilProfiles with no rare terms
+    def no_rare_term_filenames(self) -> List[str]:
+        return [
+            sig.filename for sig in self.signatures
+            if sig.rare_term_count == 0 and sig.filename is not None
+        ]
 
 
 class RarityAnalyzer:
@@ -190,3 +236,20 @@ def profile_sigil(
         rare_terms=rare_terms,
         benchmark=analyzer.benchmark,
     )
+
+def DataToSigilProfileCorpus(data: str) -> SigilProfileCorpus:
+    root = Path(data)
+    files = root.glob("**/*-taxonometry.json")
+    signatures = []
+
+    for file in files:
+        try:
+            with open(file, "r") as f:
+                data = json.load(f)
+                signature = SigilProfile(**data)
+                signature.filename = str(file)
+                signatures.append(signature)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load {file}: {e}")
+
+    return SigilProfileCorpus(signatures=signatures)

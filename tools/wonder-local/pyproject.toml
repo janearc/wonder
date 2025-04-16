@@ -32,6 +32,7 @@ spacy = "^3.8.5"
 wordfreq = "^3.1.1"
 bs4 = "^0.0.2"
 prompt-toolkit = "^3.0.50"
+gitpython = "^3.1.44"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"

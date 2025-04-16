@@ -27,28 +27,44 @@ You probably want to define `$WONDER_ROOT` because things look for that.
 
 ## Usage
 
-All entrypoints are handled via `modengine.py` and routed dynamically through the modular engine:
+All entrypoints are handled via `src/wonder-local/entry.py` and routed dynamically through the modular engine:
 
 ```bash
-poetry run python src/wonder_local/modengine.py <method> [args...]
-```
+# list models available locally
+poetry run wonder local_models
 
-### Example: Local Model Discovery
+# grab a model from hugging face
+poetry run wonder hf_get model/model-name
 
-```bash
-poetry run python src/wonder_local/modengine.py local_models
-```
+# verify whether mps is available on the local machine
+poetry run wonder mpstest
 
-### Example: Text Generation
+# attempt to load a language model
+poetry run wonder load_model model/model-name
 
-```bash
-poetry run python src/wonder_local/modengine.py generate "What is Wonder Framework?"
-```
+# run unit/regression tests
+poetry run wonder run_tests
 
-### Example: Fine-tune a model on sigils
+# list available sigils
+poetry run wonder sigils /path/to/sigils/dir
 
-```bash
-poetry run python src/wonder_local/modengine.py train ~/wonder/sigil
+# generate taxonometric profile of a sigil
+poetry run wonder sigil_profile /path/to/sigil.md
+
+# generate taxonometric profile for all sigils
+poetry run wonder sigil_profile_all /path/to/sigils/dir
+
+# use the default language model to generate text
+poetry run wonder generate "what is a dog?"
+
+# generate pretraining data from a sigil
+poetry run wonder md_to_questions /path/to/sigil.md
+
+# generate pretraining data from all sigils
+poetry run wonder md_to_questions_all /path/to/sigil/dir
+
+# run the rlhf shell to update training data
+poetry run wonder rlhf_repl /path/to/pretraining/data
 ```
 
 ## Configuration
