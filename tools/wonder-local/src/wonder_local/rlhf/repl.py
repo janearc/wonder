@@ -160,6 +160,9 @@ def review_interpreter(
         if skip_this_set:
             continue
 
+        # mark this set as reviewed as we've finished the set
+        qset.reviewed = True
+
         # End of qset — show diff if changed
         new_dump = json.dumps(qset.model_dump(), indent=2)
         if new_dump != original_dump:
@@ -182,7 +185,6 @@ def review_interpreter(
 
             if click.confirm("Write changes to file?", default=True):
                 try:
-                    qset.reviewed = True
                     with open(qset.filename, "w") as f:
                         f.write(new_dump)
                     click.secho("  ✅ File saved.", fg="green")
