@@ -150,6 +150,7 @@ def fix_missing_signatures(self, sigil_path, signature_path):
         profiled = profile_sigil(self, md, sigil_stem)
         git_stats = get_git_stats(filename)
         profiled.git_stats = git_stats
+        profiled.filename = str(filename)
 
         try:
             with open(out_path / f"{sigil_stem}-taxonometry.json", "w") as f:
