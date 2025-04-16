@@ -21,10 +21,6 @@ class QuestionEntry(BaseModel):
         False,
         description="Whether this question has been approved for use in training.",
     )
-    approved: bool = Field(
-        False,
-        description="Whether this question has been approved for use in training.",
-    )
 
 
 # Represents a set of related questions, all from a single context
