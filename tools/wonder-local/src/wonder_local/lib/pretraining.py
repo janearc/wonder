@@ -1,16 +1,69 @@
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from pydantic import BaseModel, Field
 
+
+# assess a value rating to a question or answer
+class Rating(BaseModel):
+    rating: Literal["Great", "Good", "Okay", "Bad", "Harmful"]
+
+    _order = {
+        "Great": 4,
+        "Good": 3,
+        "Okay": 2,
+        "Bad": 1,
+        "Harmful": 0,
+    }
+
+    def score(self) -> int:
+        return self._order[self.rating]
+
+    def is_better(self, other: "Rating") -> bool:
+        return self.score() > other.score()
+
+    def is_worse(self, other: "Rating") -> bool:
+        return self.score() < other.score()
+
+    def __lt__(self, other: "Rating") -> bool:
+        return self.score() < other.score()
+
+    def __le__(self, other: "Rating") -> bool:
+        return self.score() <= other.score()
+
+    def __gt__(self, other: "Rating") -> bool:
+        return self.score() > other.score()
+
+    def __ge__(self, other: "Rating") -> bool:
+        return self.score() >= other.score()
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Rating):
+            return NotImplemented
+        return self.score() == other.score()
+
+    def __str__(self) -> str:
+        return self.rating
+
+    def __repr__(self) -> str:
+        return f"Rating('{self.rating}')"
+
+class AnswerEntry(BaseModel):
+    answer: str = Field(
+        ..., description="The literal string comprising a proposed answer to a question."
+    )
+    rating: Optional[Rating] = Field(
+        None,
+        description="The assessed rating of the proposed answer."
+    )
 
 # Represents a single question and its associated metadata
 class QuestionEntry(BaseModel):
     question: str = Field(
         ..., description="The instruction-style question generated from the context."
     )
-    answers: List[str] = Field(
+    answers: List[AnswerEntry] = Field(
         ..., description="List of valid model-generated answers for this question."
     )
     synthesis_answer: str = Field(
@@ -21,7 +74,10 @@ class QuestionEntry(BaseModel):
         False,
         description="Whether this question has been approved for use in training.",
     )
-
+    rating: Optional[Rating] = Field(
+        None,
+        description="The assessed rating of the proposed question.",
+    )
 
 # Represents a set of related questions, all from a single context
 class QuestionSet(BaseModel):
@@ -45,7 +101,7 @@ class QuestionSet(BaseModel):
                 QuestionEntry(
                     question=question,
                     answers=answers,
-                    synthesis_answer="",  # to be filled later, possibly by a model
+                    synthesis_answer="",  # TODO: to be filled later, possibly by a model
                 )
             )
         return cls(context=context, questions=question_entries)
@@ -132,10 +188,19 @@ def DataToSigilReviewCorpus(data: str) -> SigilReviewCorpus:
     for file in files:
         try:
             with open(file, "r") as f:
-                data = json.load(f)
-                qset = QuestionSet(**data)
+                raw = json.load(f)
+
+                # Upgrade answers to AnswerEntry if needed
+                for question in raw.get("questions", []):
+                    if question.get("answers") and isinstance(question["answers"][0], str):
+                        question["answers"] = [
+                            {"answer": a, "rating": None} for a in question["answers"]
+                        ]
+
+                qset = QuestionSet(**raw)
                 qset.filename = str(file)
                 question_sets.append(qset)
+
         except Exception as e:
             raise RuntimeError(f"Failed to load {file}: {e}")
 
