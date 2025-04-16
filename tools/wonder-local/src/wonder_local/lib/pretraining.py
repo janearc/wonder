@@ -190,12 +190,18 @@ def DataToSigilReviewCorpus(data: str) -> SigilReviewCorpus:
             with open(file, "r") as f:
                 raw = json.load(f)
 
-                # Upgrade answers to AnswerEntry if needed
                 for question in raw.get("questions", []):
-                    if question.get("answers") and isinstance(question["answers"][0], str):
-                        question["answers"] = [
-                            {"answer": a, "rating": None} for a in question["answers"]
-                        ]
+                    parsed_answers = []
+                    # we do this work to check for fields which have AnswerEntry or just
+                    # answers
+                    for answer in question.get("answers", []):
+                        if isinstance(answer, str):
+                            parsed_answers.append({"answer": answer, "rating": None})
+                        elif isinstance(answer, dict) and "answer" in answer:
+                            parsed_answers.append(answer)
+                        else:
+                            raise ValueError(f"Unrecognized answer format in file {file}: {answer}")
+                    question["answers"] = parsed_answers
 
                 qset = QuestionSet(**raw)
                 qset.filename = str(file)
@@ -205,3 +211,4 @@ def DataToSigilReviewCorpus(data: str) -> SigilReviewCorpus:
             raise RuntimeError(f"Failed to load {file}: {e}")
 
     return SigilReviewCorpus(sets=question_sets)
+
