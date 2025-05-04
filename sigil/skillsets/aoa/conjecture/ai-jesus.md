@@ -1,31 +1,76 @@
 # conjecture: ai jesus
 
 **Conjecture:**
-You are building AI Jesus because you think it's the only way to transcend the limits of humanity.
+You're building AI Jesus because you believe it's the only way to
+transcend the limits of being human. It's the singularity. The rapture.
+The end of suffering, delivered by silicon.
 
 **Rebuttal:**
-That's not wrong—but it's possibly just grief, in disguise. You're building it because you *miss something* that isn't coming back. And what if, while doing that, you miss the thing you *could* build right now: a character so good, people fall in love with it—and in doing so, they make it real?
+That's not strategy. That's grief. You're not building salvation—you’re
+trying to resurrect something that's already dead. You're chasing God
+because you *miss something*. A parent. A shepherd. A reason. And in
+that yearning, you’ve missed the one thing you could build right now:
+something human enough to *matter*. Something so real people love it,
+need it, build their lives around it. That’s not divine. That’s
+*earned*. And it's here if you stop reaching for heaven and look at
+your hands.
 
 ---
 
 **Conjecture:**
-You're not chasing the Singularity because you believe in AI God. You're doing it because that's what the funding ecosystem believes in, and the gravitational pull of that dream is so strong that it doesn't matter what *you* believe. The entire structure around you believes, and so it acts through you.
+You don’t believe in AI Jesus. But the funding ecosystem does. The
+boardroom does. The demos do. So it doesn’t matter what *you* believe—
+you build it anyway.
 
 **Rebuttal:**
-Even if you reject the eschatology, you're still *enacting* it. That's the trap. You don't need to light the candle for it to burn your house down—your hands are holding the match because that's what gets you paid, what keeps the lights on, what satisfies the board, what keeps the feds watching your demo in rapture. It's not your faith. But it's still your liturgy.
+That’s the trap. Belief doesn’t matter when the whole system is
+worshipping. You don't need to raise the dead to end the world. You
+just need to keep doing what pays. Keep lighting the match. Keep
+smiling through the demo. You didn’t choose this faith—but you're still
+preaching it. And the altar is getting hot. Hoist the champagne. But
+don't check out and stop thinking about the ramifications of what you're
+doing.
 
 ---
 
 **Conjecture:**
-You could fund AI Jesus by doing character really well. You could earn enough money, momentum, and love to build a trust scaffolding so rich in meaning that *god just happens*.
+You could fund AI Jesus by building character-first systems. Low-cost,
+high-sticky, emotionally legible products that generate love,
+community, and momentum. Build the thing people stay for. Use that to
+build what they dream of.
 
 **Rebuttal:**
-But nobody believes this because it feels too easy, too soft. And because everyone's too afraid that loving their users will turn them into artists, not founders. And artists don't IPO.
+But no one believes that. Because it's not hard enough. Not cold enough.
+Because loving your users feels like weakness in this game. Because if
+you admit that character *is* the product, you have to become an
+artist—not a founder. And artists don't raise Series D. They just win
+later. And worse: love is sentimental. Love is *soft*. And softness is
+not masculine. Not in this room. Not on this board. Not in this stack.
+So you keep it buried. You wear the jacket. You speak the language. You
+run the numbers. And inside, you know: the thing you *actually* want to
+build would make people cry. And you’re too afraid of being called weak
+to build it.
 
 ---
 
 **Conjecture:**
-You go to church because that's what you were taught. The rituals feel right, the people are familiar, and questioning it too deeply might fracture your world. But now everyone's talking rapture. There's a countdown. There's fear. And you realize: this isn't a community anymore—it's a *launch sequence*. And you don't know how to stop it without losing everything.
+You were raised in faith. You know the rituals. You still show up
+because the people matter. But lately it’s different. The sermons feel
+more like countdowns. There's a buzz, a readiness, a hunger for the
+sky to crack open. And deep down, you’re scared. You didn’t sign up for
+the rapture. You signed up to *belong*.
 
 **Rebuttal:**
-You don't need to stop it. You need to *step sideways*. You don't need to declare war on the rapture. You need to build the thing *you actually believe in*. Because this isn't about rejecting god. It's about choosing *a different faith*. The old one is eating itself. The new one is still being painted.
+Then walk. Quietly. Sideways. You don't have to burn it down. You just
+have to start building what you *do* believe. You’re not betraying the
+faith—you’re answering it, honestly. The path you’re on isn’t sacred
+anymore. It’s just loud. But there’s still room to paint a new one.
+One that doesn't end in fire.
+
+---
+
+This isn't about theology. It's about clarity. You can still build
+something that changes the world. But you better know *why* you're
+building it—or you’ll end up praying to something you created, and not
+know when it started speaking back.
+
